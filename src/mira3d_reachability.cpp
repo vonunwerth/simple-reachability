@@ -32,11 +32,16 @@ int main(int argc, char **argv) {
     //Set reference frame for planning to the ur base link
     move_group.setPoseReferenceFrame("ur10_base_link");
     //TODO calculate reach --> ggf ausprobieren, wie weit Roboter reichen kann in x,y,z Richtung
-    ROS_INFO_STREAM(kinematic_model->getMaximumExtent());
     // Generate poses to check TODO resolution as param
-    for (int x = -3; x <= 3; x++) {
-        for (int y = -3; y <= 3; y++) {
-            for (int z = -3; z <= 3; z++) {
+    double resolution = 0.3;
+    int max_x = 3;
+    int max_y = 3;
+    int max_z = 3;
+    int steps = (2 * max_x + 1) * (2 * max_y + 1) * (2 * max_z + 1);
+
+    for (int x = -max_x; x <= max_x; x++) {
+        for (int y = -max_y; y <= max_y; y++) {
+            for (int z = -max_z; z <= max_z; z++) {
                 pose.orientation.w = 1.0; //TODO Give orientation in launch file --> if none provided calculate for all orientations like reuleaux
                 pose.position.x = x / 10.0; //TODO measure time between two plannings and calculate estimated end
                 pose.position.y = y / 10.0;
@@ -65,6 +70,7 @@ int main(int argc, char **argv) {
     red.a = 1.0f;
     red.r = 1.0f;
 
+    int step_counter = 0;
     for (geometry_msgs::Pose &target_pose : target_poses) {
         move_group.setPoseTarget(target_pose);
         bool success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
@@ -81,6 +87,8 @@ int main(int argc, char **argv) {
         } else {
             points.colors.push_back(red);
         }
+        step_counter++;
+        ROS_INFO_STREAM("Completed " << step_counter << " of " << steps);
     }
 
     ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::Marker>("visualization_marker", 10);
