@@ -31,14 +31,19 @@ int main(int argc, char **argv) {
 
     //Set reference frame for planning to the ur base link
     move_group.setPoseReferenceFrame("ur10_base_link");
-
+    //TODO calculate reach --> ggf ausprobieren, wie weit Roboter reichen kann in x,y,z Richtung
+    ROS_INFO_STREAM(kinematic_model->getMaximumExtent());
     // Generate poses to check TODO resolution as param
     for (int x = -3; x <= 3; x++) {
-        pose.orientation.w = 1.0;
-        pose.position.x = 0.5;
-        pose.position.y = x / 10.0;
-        pose.position.z = 0.5;
-        target_poses.push_back(pose);
+        for (int y = -3; y <= 3; y++) {
+            for (int z = -3; z <= 3; z++) {
+                pose.orientation.w = 1.0; //TODO Give orientation in launch file --> if none provided calculate for all orientations like reuleaux
+                pose.position.x = x / 10.0; //TODO measure time between two plannings and calculate estimated end
+                pose.position.y = y / 10.0;
+                pose.position.z = z / 10.0;
+                target_poses.push_back(pose);
+            }
+        }
     }
 
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
