@@ -5,7 +5,7 @@
 #include <moveit/kinematics_metrics/kinematics_metrics.h>
 #include <tf/tf.h>
 #include <rosbag/bag.h>
-#include <math.h>
+#include <cmath>
 
 bool inCircle(tf::Point pose, int radius);
 
@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
     // Generate poses to check TODO resolution as param
 
-    int radius = 3; //TODO dezimeter -- als Meter Parameter
+    int radius = 13; //TODO dezimeter -- als Meter Parameter
 
     //TODO nur einmal rechnen dann 3mal um 90° gedreht hinzufügen
     ROS_INFO_STREAM("Sphere discretization");
@@ -60,7 +60,8 @@ int main(int argc, char **argv) {
     for (int z = 0; z <= radius; z++) {
         for (int x = 0; x <= radius; x++) {
             for (int y = 0; y <= radius; y++) {
-                pose.orientation.w = 1.0;
+                pose.orientation.w = 0.707; //TODO Orientation as param or free
+                pose.orientation.x = -0.707;
                 position.setX(x / 10.0);
                 position.setY(y / 10.0);
                 position.setZ(z / 10.0);
@@ -99,7 +100,8 @@ int main(int argc, char **argv) {
 
     for (geometry_msgs::Pose &target_pose : target_poses) {
         move_group.setPoseTarget(target_pose);
-        bool success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS); //TODO wie geht das ohne moveit? direkt über IK? IKFast?
+        bool success = (move_group.plan(my_plan) ==
+                        moveit::planning_interface::MoveItErrorCode::SUCCESS); //TODO wie geht das ohne moveit? direkt über IK? IKFast?
 
         geometry_msgs::Point target;
         target = target_pose.position;
@@ -107,6 +109,7 @@ int main(int argc, char **argv) {
 
         if (success) {
             points.colors.push_back(green); //Plan found
+//            move_group.move();
         } else {
             points.colors.push_back(red); //If no plan is found moveit will provide a warning in ROS_WARN
         }
@@ -135,8 +138,10 @@ int main(int argc, char **argv) {
     ros::Rate r(1);
 
     rosbag::Bag bag;
-    bag.open("test.bag", rosbag::bagmode::Write); //TODO specify path to bags in the package folder
-    bag.write("/visualization_marker", ros::Time::now(), points);//TODO rosbag play mit der erstellten Bag geht nur manchmal?
+    std::string timecode = std::to_string(ros::Time::now().toNSec());
+    bag.open("workspace.bag" + timecode, rosbag::bagmode::Write); //TODO specify path to bags in the package folder
+    bag.write("/visualization_marker", ros::Time::now(),
+              points);//TODO rosbag play mit der erstellten Bag geht nur manchmal?
     bag.close(); //TODO eigenen Node, der Bag lädt und marker publisht
 
     while (ros::ok()) {
