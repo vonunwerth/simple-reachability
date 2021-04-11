@@ -4,20 +4,28 @@
 #include <moveit_visual_tools/moveit_visual_tools.h>
 #include <moveit/kinematics_metrics/kinematics_metrics.h>
 #include <tf/tf.h>
+#include <rosbag/bag.h>
+#include <math.h>
 
 bool inCircle(tf::Point pose, int radius);
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "simple_reachability");
     ros::NodeHandle node_handle;
-    ros::AsyncSpinner spinner(4);
+    ros::AsyncSpinner spinner(1);
     spinner.start();
 
-    static const std::string PLANNING_GROUP = "manipulator";
-    moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
+    std::string planning_group;
+    if (node_handle.getParam("planning_group", planning_group)) ROS_INFO_STREAM("Planning group: " << planning_group);
+    else {
+        planning_group = "manipulator"; // Default value
+        ROS_INFO_STREAM("simple_reachability will use default planning group \"manipulator\".");
+    }
+
+    moveit::planning_interface::MoveGroupInterface move_group(planning_group);
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
     const robot_state::JointModelGroup *joint_model_group =
-            move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
+            move_group.getCurrentState()->getJointModelGroup(planning_group);
 
     robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
     robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
@@ -34,10 +42,14 @@ int main(int argc, char **argv) {
     //Set reference frame for planning to the ur base link
     move_group.setPoseReferenceFrame("ur10_base_link");
     //TODO calculate reach --> ggf ausprobieren, wie weit Roboter reichen kann in x,y,z Richtung
-    // Generate poses to check TODO resolution as param
-    double resolution = 0.3;
+    std::string resolution_s;
+    double resolution; //TODO einbauen
+    if (node_handle.getParam("resolution", resolution_s)) resolution = std::stod(resolution_s);
+    else resolution = 0.1; // Default value
 
-    int radius = 13;
+    // Generate poses to check TODO resolution as param
+
+    int radius = 3; //TODO dezimeter -- als Meter Parameter
 
     //TODO nur einmal rechnen dann 3mal um 90° gedreht hinzufügen
     ROS_INFO_STREAM("Sphere discretization");
@@ -52,13 +64,16 @@ int main(int argc, char **argv) {
                 position.setX(x / 10.0);
                 position.setY(y / 10.0);
                 position.setZ(z / 10.0);
-                for (int x_rot = 0; x_rot < 4; x_rot++) {
-                    position.rotate(z_axis, x_rot * 90);
-                    if (inCircle(position, radius)) {
-                        //TODO achsen am Anfang einzeln einfügen, sodass hier niccht auf doppelte geprüft werden muss
-                        tf::pointTFToMsg(position, pose.position);
-                        target_poses.push_back(pose);
+                for (int x_rot = 0; x_rot < 2; x_rot++) { //TODO schleifen irgendwie hübscher
+                    for (int z_rot = 0; z_rot < 4; z_rot++) {
+                        position = position.rotate(z_axis, z_rot * M_PI_2); //TODO rotation not working?
+                        if (inCircle(position, radius)) {
+                            //TODO achsen am Anfang einzeln einfügen, sodass hier niccht auf doppelte geprüft werden muss
+                            tf::pointTFToMsg(position, pose.position);
+                            target_poses.push_back(pose);
+                        }
                     }
+                    position = position.rotate(x_axis, M_PI);
                 }
             }
         }
@@ -84,7 +99,7 @@ int main(int argc, char **argv) {
 
     for (geometry_msgs::Pose &target_pose : target_poses) {
         move_group.setPoseTarget(target_pose);
-        bool success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+        bool success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS); //TODO wie geht das ohne moveit? direkt über IK? IKFast?
 
         geometry_msgs::Point target;
         target = target_pose.position;
@@ -118,6 +133,11 @@ int main(int argc, char **argv) {
 
     ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::Marker>("visualization_marker", 10);
     ros::Rate r(1);
+
+    rosbag::Bag bag;
+    bag.open("test.bag", rosbag::bagmode::Write); //TODO specify path to bags in the package folder
+    bag.write("/visualization_marker", ros::Time::now(), points);//TODO rosbag play mit der erstellten Bag geht nur manchmal?
+    bag.close(); //TODO eigenen Node, der Bag lädt und marker publisht
 
     while (ros::ok()) {
         marker_pub.publish(points);
