@@ -138,8 +138,8 @@ int main(int argc, char **argv) {
     ros::Rate r(1);
 
     rosbag::Bag bag;
-    std::string timecode = std::to_string(ros::Time::now().toNSec());
-    bag.open("workspace.bag" + timecode, rosbag::bagmode::Write); //TODO specify path to bags in the package folder
+    std::string timecode = std::to_string(ros::Time::now().toNSec()); //TODO filename with robot, planninggroup timecode
+    bag.open("workspace" + timecode + ".bag", rosbag::bagmode::Write); //TODO specify path to bags in the package folder
     bag.write("/visualization_marker", ros::Time::now(),
               points);//TODO rosbag play mit der erstellten Bag geht nur manchmal?
     bag.close(); //TODO eigenen Node, der Bag lädt und marker publisht
