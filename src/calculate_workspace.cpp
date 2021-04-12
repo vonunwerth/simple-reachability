@@ -142,11 +142,10 @@ int main(int argc, char **argv) {
     std::string path = ros::package::getPath("simple-reachability");
     ROS_INFO_STREAM("Path" << path);
     bag.open(path + "/bags/test.bag", rosbag::bagmode::Write);
-//                    "" + "workspace" + timecode + ".bag", rosbag::bagmode::Write); //TODO specify path to bags in the package folder
+//                    "" + "workspace" + timecode + ".bag", rosbag::bagmode::Write);
     bag.write("/visualization_marker", ros::Time::now(),
-              points);//TODO rosbag play mit der erstellten Bag geht nur manchmal?
-    bag.close(); //TODO eigenen Node, der Bag lädt und marker publisht
-    //TODO in play programm möglich machen, dass schnitt gepublisht wird, irgendwie clever filtern möglich machen, ggf. x,y,z ranges erlauben
+              points);
+    bag.close();
     while (ros::ok()) {
         marker_pub.publish(points);
         r.sleep();

@@ -7,9 +7,31 @@
 #include <boost/foreach.hpp>
 #include <ros/node_handle.h>
 #include <ros/package.h>
+#include <armadillo>
 
 #define foreach BOOST_FOREACH
 
+std::vector<geometry_msgs::Point> slice(std::vector<geometry_msgs::Point> , int slice_number);
+std::vector<std_msgs::ColorRGBA> slice(std::vector<std_msgs::ColorRGBA> , int slice_number);
+
+std::vector<geometry_msgs::Point> slice(std::vector<geometry_msgs::Point> points, int slice_number) { //TODO make generic
+    std::vector<geometry_msgs::Point> sliced_points;
+    for (int i = 0; i < points.size(); i+=slice_number) {
+        sliced_points.push_back(points.at(i));
+    }
+    return sliced_points;
+}
+
+std::vector<std_msgs::ColorRGBA> slice(std::vector<std_msgs::ColorRGBA> colors, int slice_number) {
+    std::vector<std_msgs::ColorRGBA> sliced_colors;
+    for (int i = 0; i < colors.size(); i+=slice_number) {
+        sliced_colors.push_back(colors.at(i));
+    }
+    return sliced_colors;
+}
+
+
+//TODO frame mit dem map erstellt wurde muss da sein?! ist das gut?
 int main(int argc, char **argv) {
     ros::init(argc, argv, "simple_reachability");
     ros::NodeHandle node_handle;
@@ -22,7 +44,7 @@ int main(int argc, char **argv) {
     bag.open(path + "/bags/test.bag");  // BagMode is Read by default //TODO Bagname and path as param
 
     visualization_msgs::Marker points;
-
+//TODO in play programm möglich machen, dass schnitt gepublisht wird, irgendwie clever filtern möglich machen, ggf. x,y,z ranges erlauben
     for (rosbag::MessageInstance const m: rosbag::View(bag)) {
         visualization_msgs::Marker::ConstPtr i = m.instantiate<visualization_msgs::Marker>();
         if (i != nullptr) {
@@ -34,8 +56,9 @@ int main(int argc, char **argv) {
             points.type = i->type;
             points.scale.x = i->scale.x;
             points.scale.y = i->scale.y;
-            points.points = i->points;
-            points.colors = i->colors;
+            int slice_number = 4; //TODO as param ggf enum
+            points.points = slice(i->points, slice_number);
+            points.colors = slice(i->colors, slice_number);
         }
     }
 
