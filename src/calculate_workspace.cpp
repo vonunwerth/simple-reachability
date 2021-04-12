@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
     // Generate poses to check TODO resolution as param
 
-    int radius = 2; //TODO dezimeter -- als Meter Parameter
+    int radius = 1; //TODO dezimeter -- als Meter Parameter
 
     //TODO nur einmal rechnen dann 3mal um 90° gedreht hinzufügen
     ROS_INFO_STREAM("Sphere discretization");
@@ -139,7 +139,10 @@ int main(int argc, char **argv) {
 
     rosbag::Bag bag;
     std::string timecode = std::to_string(ros::Time::now().toSec()); //TODO filename with robot, planninggroup timecode
-    bag.open("workspace" + timecode + ".bag", rosbag::bagmode::Write); //TODO specify path to bags in the package folder
+    std::string path = ros::package::getPath("simple-reachability");
+    ROS_INFO_STREAM("Path" << path);
+    bag.open(path + "/bags/test.bag", rosbag::bagmode::Write);
+//                    "" + "workspace" + timecode + ".bag", rosbag::bagmode::Write); //TODO specify path to bags in the package folder
     bag.write("/visualization_marker", ros::Time::now(),
               points);//TODO rosbag play mit der erstellten Bag geht nur manchmal?
     bag.close(); //TODO eigenen Node, der Bag lädt und marker publisht

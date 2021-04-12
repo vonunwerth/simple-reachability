@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(mira3d_reachability)
+project(simple-reachability)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -147,7 +147,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/mira3d_reachability.cpp
+#   src/${PROJECT_NAME}/simple-reachability.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -158,7 +158,8 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(mira3d_reachability src/mira3d_reachability.cpp)
+add_executable(calculate_workspace src/calculate_workspace.cpp)
+add_executable(visualize_workspace src/visualize_workspace.cpp src/visualize_workspace.h)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -171,9 +172,15 @@ add_executable(mira3d_reachability src/mira3d_reachability.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(
+        visualize_workspace
         ${catkin_LIBRARIES}
         )
+
+target_link_libraries(
+        calculate_workspace
+        ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##
