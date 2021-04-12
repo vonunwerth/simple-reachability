@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
     // Generate poses to check TODO resolution as param
 
-    int radius = 1; //TODO dezimeter -- als Meter Parameter
+    int radius = 2; //TODO dezimeter -- als Meter Parameter
 
     //TODO nur einmal rechnen dann 3mal um 90° gedreht hinzufügen
     ROS_INFO_STREAM("Sphere discretization");
@@ -138,12 +138,12 @@ int main(int argc, char **argv) {
     ros::Rate r(1);
 
     rosbag::Bag bag;
-    std::string timecode = std::to_string(ros::Time::now().toNSec()); //TODO filename with robot, planninggroup timecode
+    std::string timecode = std::to_string(ros::Time::now().toSec()); //TODO filename with robot, planninggroup timecode
     bag.open("workspace" + timecode + ".bag", rosbag::bagmode::Write); //TODO specify path to bags in the package folder
     bag.write("/visualization_marker", ros::Time::now(),
               points);//TODO rosbag play mit der erstellten Bag geht nur manchmal?
     bag.close(); //TODO eigenen Node, der Bag lädt und marker publisht
-
+    //TODO in play programm möglich machen, dass schnitt gepublisht wird, irgendwie clever filtern möglich machen, ggf. x,y,z ranges erlauben
     while (ros::ok()) {
         marker_pub.publish(points);
         r.sleep();
