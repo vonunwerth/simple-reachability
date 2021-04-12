@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
     // Generate poses to check TODO resolution as param
 
-    int radius = 13; //TODO dezimeter -- als Meter Parameter
+    int radius = 1; //TODO dezimeter -- als Meter Parameter
 
     //TODO nur einmal rechnen dann 3mal um 90° gedreht hinzufügen
     ROS_INFO_STREAM("Sphere discretization");
@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
 
     //TODO speichern des erstellten workspaces in einem schicken format --> ggf rosbag? hdf5 wie reuleaux?
     points.header.frame_id = "ur10_base_link";
-    points.header.stamp = ros::Time::now();
+    points.header.stamp = ros::Time(0); //TODO ist too old error cverschwunden, Testen mit großen set radius=13!!!
     points.ns = "points";
     points.action = visualization_msgs::Marker::ADD;
     points.id = 0;
