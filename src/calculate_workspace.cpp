@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
     // Generate poses to check TODO resolution as param
 
-    int radius = 1; //TODO dezimeter -- als Meter Parameter
+    int radius = 13; //TODO dezimeter -- als Meter Parameter
 
     //TODO nur einmal rechnen dann 3mal um 90° gedreht hinzufügen
     ROS_INFO_STREAM("Sphere discretization");
