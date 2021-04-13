@@ -11,24 +11,13 @@
 
 #define foreach BOOST_FOREACH
 
-std::vector<geometry_msgs::Point> slice(std::vector<geometry_msgs::Point> , int slice_number);
-std::vector<std_msgs::ColorRGBA> slice(std::vector<std_msgs::ColorRGBA> , int slice_number);
+const std::vector<int> FRONT_HEMISPHERE = {0, INT_MAX, INT_MIN, INT_MAX, INT_MIN, INT_MAX}; //TODO in play programm möglich machen, dass schnitt gepublisht wird, irgendwie clever filtern möglich machen, ggf. x,y,z ranges erlauben
+const std::vector<int> REAR_HEMISPHERE = {INT_MIN, 0, INT_MIN, INT_MAX, INT_MIN, INT_MAX};
+const std::vector<int> LEFT_HEMISPHERE = {INT_MIN, INT_MAX, 0, INT_MAX, INT_MIN, INT_MAX};
+const std::vector<int> RIGHT_HEMISPHERE = {INT_MIN, INT_MAX, INT_MIN, 0, INT_MIN, INT_MAX};
+const std::vector<int> UPPER_HEMISPHERE = {INT_MIN, INT_MAX, INT_MIN, INT_MAX, 0, INT_MAX};
+const std::vector<int> LOWER_HEMISPHERE = {INT_MIN, INT_MAX, INT_MIN, INT_MAX, INT_MIN, 0};
 
-std::vector<geometry_msgs::Point> slice(std::vector<geometry_msgs::Point> points, int slice_number) { //TODO make generic
-    std::vector<geometry_msgs::Point> sliced_points;
-    for (int i = 0; i < points.size(); i+=slice_number) {
-        sliced_points.push_back(points.at(i));
-    }
-    return sliced_points;
-}
-
-std::vector<std_msgs::ColorRGBA> slice(std::vector<std_msgs::ColorRGBA> colors, int slice_number) {
-    std::vector<std_msgs::ColorRGBA> sliced_colors;
-    for (int i = 0; i < colors.size(); i+=slice_number) {
-        sliced_colors.push_back(colors.at(i));
-    }
-    return sliced_colors;
-}
 
 
 //TODO frame mit dem map erstellt wurde muss da sein?! ist das gut?
@@ -44,21 +33,28 @@ int main(int argc, char **argv) {
     bag.open(path + "/bags/test.bag");  // BagMode is Read by default //TODO Bagname and path as param
 
     visualization_msgs::Marker points;
-//TODO in play programm möglich machen, dass schnitt gepublisht wird, irgendwie clever filtern möglich machen, ggf. x,y,z ranges erlauben
+
     for (rosbag::MessageInstance const m: rosbag::View(bag)) {
-        visualization_msgs::Marker::ConstPtr i = m.instantiate<visualization_msgs::Marker>();
-        if (i != nullptr) {
-            points.header.frame_id = i->header.frame_id;
-            points.header.stamp = i->header.stamp;
-            points.ns = i->ns;
-            points.action = i->action;
-            points.id = i->id;
-            points.type = i->type;
-            points.scale.x = i->scale.x;
-            points.scale.y = i->scale.y;
-            int slice_number = 4; //TODO as param ggf enum
-            points.points = slice(i->points, slice_number);
-            points.colors = slice(i->colors, slice_number);
+        visualization_msgs::Marker::ConstPtr marker = m.instantiate<visualization_msgs::Marker>();
+        if (marker != nullptr) {
+            points.header.frame_id = marker->header.frame_id;
+            points.header.stamp = marker->header.stamp;
+            points.ns = marker->ns;
+            points.action = marker->action;
+            points.id = marker->id;
+            points.type = marker->type;
+            points.scale.x = marker->scale.x;
+            points.scale.y = marker->scale.y;
+            std::vector<int> range; // x_min, x_max, y_min, y_max, z_min, z_max TODO as param für schnitte
+
+            range = LEFT_HEMISPHERE;
+            for (int i = 0; i < marker->points.size(); i++) {
+                geometry_msgs::Point point = marker->points.at(i);
+                if (point.x >= range.at(0) and point.x <= range.at(1) and point.y >= range.at(2) and point.y <= range.at(3) and point.z >= range.at(4) and point.z <= range.at(5)) { //if marker is in requested range TODO einige werte sind nicht exakt 0 , irgendwo sinnvoll numerische Fehler wegrunden
+                    points.points.push_back(point);
+                    points.colors.push_back(marker->colors.at(i));
+                }
+            }
         }
     }
 

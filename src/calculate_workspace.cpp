@@ -67,12 +67,12 @@ int main(int argc, char **argv) {
                 position.setZ(z / 10.0);
                 for (int x_rot = 0; x_rot < 2; x_rot++) { //TODO schleifen irgendwie hübscher
                     for (int z_rot = 0; z_rot < 4; z_rot++) {
-                        position = position.rotate(z_axis, z_rot * M_PI_2); //TODO rotation not working?
                         if (inCircle(position, radius)) {
                             //TODO achsen am Anfang einzeln einfügen, sodass hier niccht auf doppelte geprüft werden muss
                             tf::pointTFToMsg(position, pose.position);
                             target_poses.push_back(pose);
                         }
+                        position = position.rotate(z_axis, z_rot * M_PI_2);
                     }
                     position = position.rotate(x_axis, M_PI);
                 }
