@@ -7,11 +7,11 @@
 #include <rosbag/bag.h>
 #include <cmath>
 
-bool inCircle(tf::Point pose, int radius);
+bool inCircle(tf::Point pose, double radius);
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "simple_reachability");
-    ros::NodeHandle node_handle;
+    ros::NodeHandle node_handle("~");
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
@@ -19,8 +19,12 @@ int main(int argc, char **argv) {
     if (node_handle.getParam("planning_group", planning_group)) ROS_INFO_STREAM("Planning group: " << planning_group);
     else {
         planning_group = "manipulator"; // Default value
-        ROS_INFO_STREAM("simple_reachability will use default planning group \"manipulator\".");
+        ROS_INFO_STREAM(
+                "Param \"planning group\" not provided. simple_reachability will use default planning group \"manipulator\".");
     }
+
+    double resolution; // Resolution in meter
+    node_handle.param<double>("resolution", resolution, 0.1);
 
     moveit::planning_interface::MoveGroupInterface move_group(planning_group);
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
@@ -42,33 +46,31 @@ int main(int argc, char **argv) {
     //Set reference frame for planning to the ur base link
     move_group.setPoseReferenceFrame("ur10_base_link");
     //TODO calculate reach --> ggf ausprobieren, wie weit Roboter reichen kann in x,y,z Richtung
-    std::string resolution_s;
-    double resolution; //TODO einbauen
-    if (node_handle.getParam("resolution", resolution_s)) resolution = std::stod(resolution_s);
-    else resolution = 0.1; // Default value
+
 
     // Generate poses to check TODO resolution as param
 
-    int radius = 13; //TODO dezimeter -- als Meter Parameter
+    double radius = 0.2;
+    //TODO param um custom bereiche auszuwählen, die untersucht werden sollen, nicht nur sphere --> von bestimmtem frame aus xmin-xmax, ... angeben möglich
 
-    //TODO nur einmal rechnen dann 3mal um 90° gedreht hinzufügen
+    //TODO nur einmal rechnen dann  3mal um 90° gedreht hinzufügen
     ROS_INFO_STREAM("Sphere discretization");
     geometry_msgs::Pose pose;
     tf::Vector3 z_axis(0, 0, 1);
     tf::Vector3 x_axis(1, 0, 0);
     tf::Point position;
-    for (int z = 0; z <= radius; z++) {
-        for (int x = 0; x <= radius; x++) {
-            for (int y = 0; y <= radius; y++) {
+    for (double z = 0; z <= radius; z += resolution) { //TODO Define minimum distance (perhaps mm) and bring to int?
+        for (double x = 0; x <= radius; x += resolution) {
+            for (double y = 0; y <= radius; y += resolution) {
                 pose.orientation.w = 0.707; //TODO Orientation as param or free
                 pose.orientation.x = -0.707;
-                position.setX(x / 10.0);
-                position.setY(y / 10.0);
-                position.setZ(z / 10.0);
+                position.setX(x);
+                position.setY(y);
+                position.setZ(z);
                 for (int x_rot = 0; x_rot < 2; x_rot++) { //TODO schleifen irgendwie hübscher
-                    for (int z_rot = 0; z_rot < 4; z_rot++) {
+                    for (int z_rot = 1; z_rot < 5; z_rot++) {
                         if (inCircle(position, radius)) {
-                            //TODO achsen am Anfang einzeln einfügen, sodass hier niccht auf doppelte geprüft werden muss
+                            //TODO achsen am Anfang einzeln einfügen, sodass hier niccht auf doppelte geprüft werden muss -> auf achsen ist x,y oder z == 0!
                             tf::pointTFToMsg(position, pose.position);
                             target_poses.push_back(pose);
                         }
@@ -131,8 +133,8 @@ int main(int argc, char **argv) {
     points.action = visualization_msgs::Marker::ADD;
     points.id = 0;
     points.type = visualization_msgs::Marker::POINTS;
-    points.scale.x = 0.02;
-    points.scale.y = 0.02;
+    points.scale.x = resolution / 5; // TODO Scale as param
+    points.scale.y = resolution / 5;
 
     ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::Marker>("visualization_marker", 10);
     ros::Rate r(1);
@@ -155,7 +157,7 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-bool inCircle(tf::Point p, int radius) {
+bool inCircle(tf::Point p, double radius) {
     ROS_INFO_STREAM("Position: " << p << " : " << p.length());
-    return p.length() <= radius / 10.0; // If the length is shorter than the radius the point is in the sphere
+    return p.length() <= radius; // If the length is shorter than the radius the point is in the sphere
 }

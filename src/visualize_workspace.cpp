@@ -17,6 +17,8 @@ const std::vector<int> LEFT_HEMISPHERE = {INT_MIN, INT_MAX, 0, INT_MAX, INT_MIN,
 const std::vector<int> RIGHT_HEMISPHERE = {INT_MIN, INT_MAX, INT_MIN, 0, INT_MIN, INT_MAX};
 const std::vector<int> UPPER_HEMISPHERE = {INT_MIN, INT_MAX, INT_MIN, INT_MAX, 0, INT_MAX};
 const std::vector<int> LOWER_HEMISPHERE = {INT_MIN, INT_MAX, INT_MIN, INT_MAX, INT_MIN, 0};
+const std::vector<int> FULL = {INT_MIN, INT_MAX, INT_MIN, INT_MAX, INT_MIN, INT_MAX};
+
 
 
 
@@ -47,7 +49,7 @@ int main(int argc, char **argv) {
             points.scale.y = marker->scale.y;
             std::vector<int> range; // x_min, x_max, y_min, y_max, z_min, z_max TODO as param für schnitte
 
-            range = LEFT_HEMISPHERE;
+            range = FULL;
             for (int i = 0; i < marker->points.size(); i++) {
                 geometry_msgs::Point point = marker->points.at(i);
                 if (point.x >= range.at(0) and point.x <= range.at(1) and point.y >= range.at(2) and point.y <= range.at(3) and point.z >= range.at(4) and point.z <= range.at(5)) { //if marker is in requested range TODO einige werte sind nicht exakt 0 , irgendwo sinnvoll numerische Fehler wegrunden
