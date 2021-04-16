@@ -8,14 +8,6 @@
 
 std::vector<std::vector<int>> visualization_modes;
 
-const std::vector<int> FULL = {INT_MIN, INT_MAX, INT_MIN, INT_MAX, INT_MIN, INT_MAX};
-const std::vector<int> FRONT_HEMISPHERE = {0, INT_MAX, INT_MIN, INT_MAX, INT_MIN, INT_MAX};
-const std::vector<int> REAR_HEMISPHERE = {INT_MIN, 0, INT_MIN, INT_MAX, INT_MIN, INT_MAX};
-const std::vector<int> LEFT_HEMISPHERE = {INT_MIN, INT_MAX, 0, INT_MAX, INT_MIN, INT_MAX};
-const std::vector<int> RIGHT_HEMISPHERE = {INT_MIN, INT_MAX, INT_MIN, 0, INT_MIN, INT_MAX};
-const std::vector<int> UPPER_HEMISPHERE = {INT_MIN, INT_MAX, INT_MIN, INT_MAX, 0, INT_MAX};
-const std::vector<int> LOWER_HEMISPHERE = {INT_MIN, INT_MAX, INT_MIN, INT_MAX, INT_MIN, 0};
-
 int main(int argc, char **argv) {
     ros::init(argc, argv, "simple_reachability");
     ros::NodeHandle node_handle("~");
@@ -37,6 +29,15 @@ int main(int argc, char **argv) {
     bag.open(path + "/bags/" + file_name);  // BagMode is Read by default
 
     visualization_msgs::Marker points;
+
+    //Cuts which may be useful
+    const std::vector<int> FULL = {INT_MIN, INT_MAX, INT_MIN, INT_MAX, INT_MIN, INT_MAX};
+    const std::vector<int> FRONT_HEMISPHERE = {0, INT_MAX, INT_MIN, INT_MAX, INT_MIN, INT_MAX};
+    const std::vector<int> REAR_HEMISPHERE = {INT_MIN, 0, INT_MIN, INT_MAX, INT_MIN, INT_MAX};
+    const std::vector<int> LEFT_HEMISPHERE = {INT_MIN, INT_MAX, 0, INT_MAX, INT_MIN, INT_MAX};
+    const std::vector<int> RIGHT_HEMISPHERE = {INT_MIN, INT_MAX, INT_MIN, 0, INT_MIN, INT_MAX};
+    const std::vector<int> UPPER_HEMISPHERE = {INT_MIN, INT_MAX, INT_MIN, INT_MAX, 0, INT_MAX};
+    const std::vector<int> LOWER_HEMISPHERE = {INT_MIN, INT_MAX, INT_MIN, INT_MAX, INT_MIN, 0};
 
     visualization_modes.push_back(FULL);
     visualization_modes.push_back(FRONT_HEMISPHERE);
