@@ -1,6 +1,0 @@
-planning_group: "manipulator" # manipulator planning group
-manipulator_base_link: "ur10_base_link" # base link of the manipulator
-resolution: 0.2 # resolution of the calculated workspace in meters
-scale: 0 # 0 means automatic scaling, otherwise the given value will be used
-publish_rate: 1 # rate in Hz in which the workspace points will be published
-file_name: "test.bag" # you could provide a file name with suffix .bag (like test.bag) for the generated workspace

@@ -27,11 +27,9 @@ int main(int argc, char **argv) {
 
     moveit::planning_interface::MoveGroupInterface move_group(planning_group);
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-    const robot_state::JointModelGroup *joint_model_group =
-            move_group.getCurrentState()->getJointModelGroup(planning_group);
 
     robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
-    robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
+    const robot_model::RobotModelPtr &kinematic_model = robot_model_loader.getModel();
     ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
     robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
     moveit::core::RobotState robot_state(robot_model_loader.getModel());
@@ -42,30 +40,41 @@ int main(int argc, char **argv) {
     //Set reference frame for planning to the ur base link
     std::string base_link;
     node_handle.param<std::string>("manipulator_base_link", base_link, "base_link");
-    move_group.setPoseReferenceFrame(base_link); //TODO check which link is the base link automaticcally move_group.getLinkNames()[0]??
-    //TODO base_link manuell setzen ermöglicht sperren von joints hinter diesem link und anzeige von Workspace nur unter Nutzung der "vorderen" Gelenke (nach dem angegebenen Link)
-    //TODO calculate reach --> ggf ausprobieren, wie weit Roboter reichen kann in x,y,z Richtung
+    move_group.setPoseReferenceFrame(
+            base_link);
 
-    double radius = 0.2;
-    //TODO param um custom bereiche auszuwählen, die untersucht werden sollen, nicht nur sphere --> von bestimmtem frame aus xmin-xmax, ... angeben möglich
+    double radius;
+    node_handle.param("manipulator_reach", radius, 0.1);
+    if (radius < resolution) {
+        ROS_ERROR_STREAM(
+                "The given sphere radius is lower than the resolution. This will result in only a single marker in the origin. Check your resolution and manipulator_reach parameters.");
+    }
 
-    ROS_INFO_STREAM("Sphere discretization");
     geometry_msgs::Pose pose;
     tf::Vector3 z_axis(0, 0, 1);
     tf::Vector3 x_axis(1, 0, 0);
     tf::Point position;
-    for (double z = 0; z <= radius; z += resolution) { //TODO Define minimum distance (perhaps mm) and bring to int?
+
+    node_handle.getParam("ee_orientation_x", pose.orientation.x);
+    node_handle.getParam("ee_orientation_y", pose.orientation.y);
+    node_handle.getParam("ee_orientation_z", pose.orientation.z);
+    node_handle.getParam("ee_orientation_w", pose.orientation.w);
+
+    ROS_INFO_STREAM("EE Rotation set to (x,y,z,w): (" << pose.orientation.x << ", " << pose.orientation.y << ", "
+                                                      << pose.orientation.z << ", " << pose.orientation.w << ")");
+
+    for (double z = 0; z <= radius; z += resolution) {
         for (double x = 0; x <= radius; x += resolution) {
             for (double y = 0; y <= radius; y += resolution) {
-                //pose.orientation.w = 0.707; //TODO Orientation as param or free
+                //pose.orientation.w = 0.707;
                 //pose.orientation.x = -0.707;
                 position.setX(x);
                 position.setY(y);
                 position.setZ(z);
-                for (int x_rot = 0; x_rot < 2; x_rot++) { //TODO schleifen irgendwie hübscher
+                for (int x_rot = 0; x_rot < 2; x_rot++) {
                     for (int z_rot = 1; z_rot < 5; z_rot++) {
-                        if (position.length() <= radius) { //TODO einmal überprüfen reicht, gedrehte können ohne Prüfung hinzugefügt werden
-                            //TODO achsen am Anfang einzeln einfügen, sodass hier niccht auf doppelte geprüft werden muss -> auf achsen ist x,y oder z == 0!
+                        if (position.length() <=
+                            radius) {
                             tf::pointTFToMsg(position, pose.position);
                             target_poses.push_back(pose);
                         }
@@ -98,7 +107,7 @@ int main(int argc, char **argv) {
     for (geometry_msgs::Pose &target_pose : target_poses) {
         move_group.setPoseTarget(target_pose);
         bool success = (move_group.plan(my_plan) ==
-                        moveit::planning_interface::MoveItErrorCode::SUCCESS); //TODO wie geht das ohne moveit? direkt über IK? IKFast?
+                        moveit::planning_interface::MoveItErrorCode::SUCCESS); // Choose your IK Plugin in the moveit_config - IKFast could be really useful here
 
         geometry_msgs::Point target;
         target = target_pose.position;
@@ -121,8 +130,10 @@ int main(int argc, char **argv) {
         ROS_INFO("Time to complete: %02d:%02d:%02d", int(hours), int(minutes % 60), int(estimated_time % 60));
     }
 
-    std::string visualization_topic = "visualization_marker"; //TODo find out current node name
-    ROS_INFO_STREAM("Workspace calculation completed. Will publish visualization on: " << visualization_topic);
+    std::string visualization_topic = "visualization_marker";
+    ROS_INFO_STREAM(
+            "Workspace calculation completed. Will publish visualization on: /" << ros::this_node::getName() << "/"
+                                                                                << visualization_topic);
 
     points.header.frame_id = base_link;
     points.header.stamp = ros::Time(0);
@@ -146,10 +157,11 @@ int main(int argc, char **argv) {
     ros::Rate r(rate);
 
     rosbag::Bag bag;
-    std::string timecode = std::to_string(ros::Time::now().toSec());
+    std::string time_code = std::to_string(ros::Time::now().toSec());
     std::string path = ros::package::getPath("simple-reachability");
     std::string filename;
-    node_handle.param("file_name", filename, (planning_group + "_" + base_link + std::to_string(resolution) + timecode + ".bag"));
+    node_handle.param("file_name", filename,
+                      (planning_group + "_" + base_link + "_" + std::to_string(resolution) + "_" + time_code + ".bag"));
     ROS_INFO_STREAM("Workspace written to: " << path << "/bags/" << filename);
     bag.open(path + "/bags/" + filename, rosbag::bagmode::Write);
     bag.write("/visualization_marker", ros::Time::now(),
