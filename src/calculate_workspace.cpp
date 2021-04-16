@@ -7,8 +7,6 @@
 #include <rosbag/bag.h>
 #include <cmath>
 
-bool inCircle(tf::Point pose, double radius);
-
 int main(int argc, char **argv) {
     ros::init(argc, argv, "simple_reachability");
     ros::NodeHandle node_handle("~");
@@ -25,6 +23,7 @@ int main(int argc, char **argv) {
 
     double resolution; // Resolution in meter
     node_handle.param<double>("resolution", resolution, 0.1);
+    ROS_INFO_STREAM("Workspace resolution: " << resolution);
 
     moveit::planning_interface::MoveGroupInterface move_group(planning_group);
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
@@ -38,22 +37,18 @@ int main(int argc, char **argv) {
     moveit::core::RobotState robot_state(robot_model_loader.getModel());
     kinematic_state->setToDefaultValues();
 
-    namespace rvt = rviz_visual_tools;
-    moveit_visual_tools::MoveItVisualTools visual_tools("panda_link0");
-
     std::vector<geometry_msgs::Pose> target_poses;
 
     //Set reference frame for planning to the ur base link
-    move_group.setPoseReferenceFrame("ur10_base_link");
+    std::string base_link;
+    node_handle.param<std::string>("manipulator_base_link", base_link, "base_link");
+    move_group.setPoseReferenceFrame(base_link); //TODO check which link is the base link automaticcally move_group.getLinkNames()[0]??
+    //TODO base_link manuell setzen ermöglicht sperren von joints hinter diesem link und anzeige von Workspace nur unter Nutzung der "vorderen" Gelenke (nach dem angegebenen Link)
     //TODO calculate reach --> ggf ausprobieren, wie weit Roboter reichen kann in x,y,z Richtung
-
-
-    // Generate poses to check TODO resolution as param
 
     double radius = 0.2;
     //TODO param um custom bereiche auszuwählen, die untersucht werden sollen, nicht nur sphere --> von bestimmtem frame aus xmin-xmax, ... angeben möglich
 
-    //TODO nur einmal rechnen dann  3mal um 90° gedreht hinzufügen
     ROS_INFO_STREAM("Sphere discretization");
     geometry_msgs::Pose pose;
     tf::Vector3 z_axis(0, 0, 1);
@@ -62,14 +57,14 @@ int main(int argc, char **argv) {
     for (double z = 0; z <= radius; z += resolution) { //TODO Define minimum distance (perhaps mm) and bring to int?
         for (double x = 0; x <= radius; x += resolution) {
             for (double y = 0; y <= radius; y += resolution) {
-                pose.orientation.w = 0.707; //TODO Orientation as param or free
-                pose.orientation.x = -0.707;
+                //pose.orientation.w = 0.707; //TODO Orientation as param or free
+                //pose.orientation.x = -0.707;
                 position.setX(x);
                 position.setY(y);
                 position.setZ(z);
                 for (int x_rot = 0; x_rot < 2; x_rot++) { //TODO schleifen irgendwie hübscher
                     for (int z_rot = 1; z_rot < 5; z_rot++) {
-                        if (inCircle(position, radius)) {
+                        if (position.length() <= radius) { //TODO einmal überprüfen reicht, gedrehte können ohne Prüfung hinzugefügt werden
                             //TODO achsen am Anfang einzeln einfügen, sodass hier niccht auf doppelte geprüft werden muss -> auf achsen ist x,y oder z == 0!
                             tf::pointTFToMsg(position, pose.position);
                             target_poses.push_back(pose);
@@ -126,25 +121,37 @@ int main(int argc, char **argv) {
         ROS_INFO("Time to complete: %02d:%02d:%02d", int(hours), int(minutes % 60), int(estimated_time % 60));
     }
 
-    //TODO speichern des erstellten workspaces in einem schicken format --> ggf rosbag? hdf5 wie reuleaux?
-    points.header.frame_id = "ur10_base_link";
-    points.header.stamp = ros::Time(0); //TODO ist too old error cverschwunden, Testen mit großen set radius=13!!!
+    std::string visualization_topic = "visualization_marker"; //TODo find out current node name
+    ROS_INFO_STREAM("Workspace calculation completed. Will publish visualization on: " << visualization_topic);
+
+    points.header.frame_id = base_link;
+    points.header.stamp = ros::Time(0);
     points.ns = "points";
     points.action = visualization_msgs::Marker::ADD;
     points.id = 0;
     points.type = visualization_msgs::Marker::POINTS;
-    points.scale.x = resolution / 5; // TODO Scale as param
-    points.scale.y = resolution / 5;
+    double scale;
+    node_handle.param<double>("scale", scale, 0);
+    if (scale == 0) {
+        points.scale.x = resolution / 5;
+        points.scale.y = resolution / 5;
+    } else {
+        points.scale.x = scale;
+        points.scale.y = scale;
+    }
 
-    ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::Marker>("visualization_marker", 10);
-    ros::Rate r(1);
+    ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::Marker>(visualization_topic, 1);
+    int rate;
+    node_handle.param<int>("publish_rate", rate, 1);
+    ros::Rate r(rate);
 
     rosbag::Bag bag;
-    std::string timecode = std::to_string(ros::Time::now().toSec()); //TODO filename with robot, planninggroup timecode
+    std::string timecode = std::to_string(ros::Time::now().toSec());
     std::string path = ros::package::getPath("simple-reachability");
-    ROS_INFO_STREAM("Path" << path);
-    bag.open(path + "/bags/test.bag", rosbag::bagmode::Write);
-//                    "" + "workspace" + timecode + ".bag", rosbag::bagmode::Write);
+    std::string filename;
+    node_handle.param("file_name", filename, (planning_group + "_" + base_link + std::to_string(resolution) + timecode + ".bag"));
+    ROS_INFO_STREAM("Workspace written to: " << path << "/bags/" << filename);
+    bag.open(path + "/bags/" + filename, rosbag::bagmode::Write);
     bag.write("/visualization_marker", ros::Time::now(),
               points);
     bag.close();
@@ -155,9 +162,4 @@ int main(int argc, char **argv) {
 
     ros::shutdown();
     return 0;
-}
-
-bool inCircle(tf::Point p, double radius) {
-    ROS_INFO_STREAM("Position: " << p << " : " << p.length());
-    return p.length() <= radius; // If the length is shorter than the radius the point is in the sphere
 }

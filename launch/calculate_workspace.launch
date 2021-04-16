@@ -1,0 +1,7 @@
+<launch>
+  <node name="calculate_workspace" pkg="simple-reachability" type="calculate_workspace" output="screen">
+    <!--<param name="dev" value="/dev/input/js0"/>-->
+    <rosparam command="load" file="$(find simple-reachability)/config/config.yaml"/>
+  </node>
+
+</launch>
