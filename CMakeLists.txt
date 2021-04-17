@@ -159,7 +159,7 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(calculate_workspace src/calculate_workspace.cpp)
-add_executable(visualize_workspace src/visualize_workspace.cpp src/visualize_workspace.h)
+add_executable(visualize_workspace src/visualize_workspace.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
