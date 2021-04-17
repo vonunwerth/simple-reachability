@@ -1,0 +1,4 @@
+scale: 0.2 # scaling of the markers, otherwise the given value will be used
+publish_rate: 1 # rate in Hz in which the workspace points will be published
+file_name: "test.bag" # which bag in the /bags folder should be visualized?
+visualization_mode: 0 # Modes: 0 (FULL), 1 (FRONT_HEMISPHERE), 2 (REAR_HEMISPHERE), 3 (LEFT_HEMISPHERE), 4 (RIGHT_HEMISPHERE), 5 (UPPER_HEMISPHERE), 6 (LOWER_HEMISPHERE), default is 0

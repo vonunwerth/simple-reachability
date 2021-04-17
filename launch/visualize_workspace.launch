@@ -1,0 +1,6 @@
+<launch>
+  <node name="visualize_workspace" pkg="simple-reachability" type="visualize_workspace" output="screen">
+    <rosparam command="load" file="$(find simple-reachability)/config/visualization.yaml"/>
+  </node>
+
+</launch>
