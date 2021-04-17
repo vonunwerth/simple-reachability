@@ -38,3 +38,7 @@ Make sure you provide the name of the file you want to run in the *visualization
 Now you can visualize the workspace by adding a *Marker* with the topic ```/visualize_workspace/visualization_marker``` in RVIZ.
 
 In the config file you can modify which part of the workspace you can see. For example you could cut it to only see the *LEFT_HEMISPHERE* for better visualization.
+
+### Contribution
+
+Feel free to improve the code or implement some new features. Feature requests or bugs can be reported as *Issue*.
