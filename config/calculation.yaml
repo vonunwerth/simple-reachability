@@ -1,10 +1,10 @@
 planning_group: "manipulator" # manipulator planning group
 manipulator_base_link: "ur10_base_link" # base link of the manipulator
 manipulator_reach: 1.30 # maximum reach of the manipulator - this will set the radius of the initial workspace sphere where all positions will be calculated in
-resolution: 0.4 # resolution of the calculated workspace in meters
+resolution: 0.2 # resolution of the calculated workspace in meters
 scale: 0 # 0 means automatic scaling, otherwise the given value will be used
 publish_rate: 1 # rate in Hz in which the workspace points will be published
-#file_name: "test.bag" # you could provide a file name with suffix .bag (like test.bag) for the generated workspace
+file_name: "test.bag" # you could provide a file name with suffix .bag (like test.bag) for the generated workspace
 continue_calculation: true # the node will look if there is a file with the same filename and .partial and will continue the calculation, make sure to provide the same config values here before starting the continuation!
 
 # You can provide a fixed end-effector orientation (as quaternion), to ignore the orientation, comment this parameters
