@@ -49,6 +49,7 @@ int main(int argc, char **argv) {
 
     for (rosbag::MessageInstance const m: rosbag::View(bag)) {
         visualization_msgs::Marker::ConstPtr marker = m.instantiate<visualization_msgs::Marker>();
+        ROS_INFO_STREAM("Visualizing " << marker->points.size() << " Markers");
         if (marker != nullptr) {
             points.header.frame_id = marker->header.frame_id;
             points.header.stamp = marker->header.stamp;
