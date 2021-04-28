@@ -12,9 +12,17 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "simple_reachability");
     ros::NodeHandle node_handle("~");
     ros::AsyncSpinner spinner(1);
+
+    // Read param rate
     int rate;
     node_handle.param("publish_rate", rate, 1);
     ros::Rate r(rate);
+
+    // Read param mode
+    int mode;
+    node_handle.param("visualization_mode", mode, 0);
+    if (mode > 6 or mode < 0) mode = 0;
+
     ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::Marker>("visualization_marker", 10);
 
     rosbag::Bag bag;
@@ -64,7 +72,7 @@ int main(int argc, char **argv) {
             node_handle.param<int>("visualization_mode", visualization_mode, 0);
             std::vector<int> range = visualization_modes[visualization_mode];
 
-            range = FULL;
+            range = visualization_modes[mode];
             for (int i = 0; i < marker->points.size(); i++) {
                 geometry_msgs::Point point = marker->points.at(i);
                 if (point.x >= range.at(0) and point.x <= range.at(1) and point.y >= range.at(2) and
