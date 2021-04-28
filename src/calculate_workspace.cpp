@@ -117,6 +117,10 @@ int main(int argc, char **argv) {
         points.scale.y = scale;
     }
 
+    // Steps of calculation and the current step
+    unsigned long steps = 0;
+    unsigned long step_counter = 0;
+
     //Look for a .partial result for the calculation to execute
     rosbag::Bag bag;
     ROS_INFO_STREAM("Try to find a partial workspace computation: " << filename << ".partial");
@@ -138,6 +142,8 @@ int main(int argc, char **argv) {
                 points.colors = marker->colors;
                 ROS_INFO_STREAM(
                         "Found " << points.points.size() << " calculated points in the partial calculated workspace.");
+                steps += marker->points.size();
+                step_counter += marker->points.size();
             }
         }
     } catch (rosbag::BagException &b) {
@@ -160,7 +166,7 @@ int main(int argc, char **argv) {
     kinematic_state->setToDefaultValues();
 
     // Structure to store all poses which need to be tested
-    std::vector<geometry_msgs::Pose> target_poses;
+    std::vector <geometry_msgs::Pose> target_poses;
 
     //Set reference frame for planning to the ur base link
     move_group.setPoseReferenceFrame(
@@ -191,15 +197,14 @@ int main(int argc, char **argv) {
                         if (position.length() <= radius) {
                             tf::pointTFToMsg(position, pose.position);
                             bool already_calculated = false;
-                            for (geometry_msgs::Point point : points.points) { //If point is not already calculated by a previous calculation (if .partial file is loaded)
-                                if (point ==
-                                    pose.position) {
+                            if (std::find(target_poses.begin(), target_poses.end(), pose) == target_poses.end()) {// If the pose (especially a rotatetd one is not already in target_poses)
+                                if (std::find(points.points.begin(), points.points.end(), pose.position) != points.points.end()) {
                                     ROS_DEBUG_STREAM("Found result for " << pose.position
                                                                          << " already in partial calculation result. Skipping.");
-                                    ROS_DEBUG_STREAM(point);
                                     already_calculated = true;
-                                    break;
                                 }
+                            } else {
+                                already_calculated = true;
                             }
                             if (!already_calculated) target_poses.push_back(pose);
                         }
@@ -210,10 +215,7 @@ int main(int argc, char **argv) {
             }
         }
     }
-
-    // Steps of calculation and the current step
-    unsigned long steps = target_poses.size();
-    unsigned long step_counter = 0;
+    steps += target_poses.size();
 
     // Marker for success (green) and failure (red)
     std_msgs::ColorRGBA green;
@@ -258,4 +260,6 @@ int main(int argc, char **argv) {
     saveROSBag(true); // Save complete result and delete .partial
     ros::shutdown();
     return 0;
+
+    //TODO noch einmal komplett durchlaufen lassen am ende oft 1er unterschied...
 }
