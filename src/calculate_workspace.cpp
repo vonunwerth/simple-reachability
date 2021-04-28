@@ -260,6 +260,4 @@ int main(int argc, char **argv) {
     saveROSBag(true); // Save complete result and delete .partial
     ros::shutdown();
     return 0;
-
-    //TODO noch einmal komplett durchlaufen lassen am ende oft 1er unterschied...
 }
