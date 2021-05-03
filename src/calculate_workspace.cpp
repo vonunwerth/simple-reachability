@@ -28,8 +28,13 @@ void saveROSBag(bool complete) {
     rosbag::Bag bag;
     std::string path = ros::package::getPath("simple-reachability");
     if (!complete) { // if computation is incomplete generate .partial workspace bag
-        points.points.pop_back(); //Remove incompletely calculated last point which has been be added silently because moveit and the out stream lost its connection to the master
-        points.colors.pop_back();
+        ROS_DEBUG_STREAM("Aborted at: \n" << points.points[points.points.size() - 1] << "\n Posecount: " << points.points.size());
+
+        int index = 0;
+        for (geometry_msgs::Point position : points.points) {
+            ROS_DEBUG_STREAM("\nPosition: " << position << "\n" << "Color: " << points.colors[index]);
+            index++;
+        }
         filename.append(".partial");
         ROS_INFO_STREAM(
                 "Partial Workspace (" << points.points.size() << " calculated poses) calculation will be written to: "
@@ -38,10 +43,15 @@ void saveROSBag(bool complete) {
         ROS_INFO_STREAM("Workspace will be saved in: " << path << "/bags/" << filename);
         std::remove((path + "/bags/" + filename + ".partial").c_str()); // Remove the partial files after completion
     }
+    visualization_msgs::Marker tmp_p = points;
     bag.open(path + "/bags/" + filename, rosbag::bagmode::Write); // Save bag in the bags folder of the package
     bag.write("/visualization_marker", ros::Time::now(),
               points);
     bag.close();
+    ROS_INFO_STREAM(
+            "Partial Workspace (" << points.points.size() << " calculated poses) calculation will be written to: "
+                                  << path << "/bags/" << filename);
+
 }
 
 /**
@@ -51,8 +61,8 @@ void saveROSBag(bool complete) {
 void shutdownNode(int sig) {
     ROS_INFO_STREAM("Shutting down node with signal " << sig << ". Will save current calculation.");
     saveROSBag(false);
-    //std::exit(25);
-    ros::shutdown();
+    std::exit(25);
+    //ros::shutdown(); //TODO with shutdown it would insert one more point with unsuccessfull moveit result and add it to the bag after it is closed?
 }
 
 /**
@@ -87,6 +97,33 @@ int main(int argc, char **argv) {
     node_handle.param("file_name", filename,
                       (planning_group + "_" + base_link + "_" + std::to_string(resolution) + ".bag"));
     std::string path = ros::package::getPath("simple-reachability");
+
+    // Load the radius parameter from the configuration file
+    double radius;
+    node_handle.param("manipulator_reach", radius, 0.1);
+
+    // Loads a specified detail region from the configuration file
+    bool calculate_full = !(node_handle.hasParam("x_min") or node_handle.hasParam("x_max") or
+                            node_handle.hasParam("y_min") or node_handle.hasParam("y_max") or
+                            node_handle.hasParam("z_min") or node_handle.hasParam("z_max"));
+    double x_min, x_max, y_min, y_max, z_min, z_max;
+    node_handle.param<double>("x_min", x_min, 0);
+    node_handle.param<double>("x_max", x_max, radius);
+    node_handle.param<double>("y_min", y_min, 0);
+    node_handle.param<double>("y_max", y_max, radius);
+    node_handle.param<double>("z_min", z_min, 0);
+    node_handle.param<double>("z_max", z_max, radius);
+
+    if ((calculate_full and radius < resolution) or
+        (std::abs(x_min - x_max) < resolution and std::abs(y_min - y_max) < resolution and std::abs(z_min - z_max) <
+                                                                                           resolution)) { // Only if a complete calculation should be done check if resolution is set to a proper value
+        ROS_ERROR_STREAM(
+                "The volume of the given region is lower than the resolution. This will result in only a single marker in the origin. Check your resolution and manipulator_reach parameters.");
+    }
+
+    // Loads the complete_region parameter from the configuration
+    bool complete_region;
+    node_handle.param<bool>("complete_region", complete_region, false);
 
     // Load the end-effector orientation parameters from the configuration
     geometry_msgs::Pose pose;
@@ -166,51 +203,56 @@ int main(int argc, char **argv) {
     kinematic_state->setToDefaultValues();
 
     // Structure to store all poses which need to be tested
-    std::vector <geometry_msgs::Pose> target_poses;
+    std::vector<geometry_msgs::Pose> target_poses;
 
     //Set reference frame for planning to the ur base link
     move_group.setPoseReferenceFrame(
             base_link);
 
-    double radius;
-    node_handle.param("manipulator_reach", radius, 0.1);
-    if (radius < resolution) {
-        ROS_ERROR_STREAM(
-                "The given sphere radius is lower than the resolution. This will result in only a single marker in the origin. Check your resolution and manipulator_reach parameters.");
-    }
-
-
     // Generate target poses, this also checks if a partial result already contains a pose
     ROS_INFO_STREAM(
             "Generating target pose list to check if the robot can reach that poses in the next step. This could take a minute if the node loads a previously generated partial result.");
     tf::Point position;
-    for (double z = 0; z <= radius; z += resolution) {
-        for (double x = 0; x <= radius; x += resolution) {
-            for (double y = 0; y <= radius; y += resolution) {
+    for (double z = z_min; z <= z_max; z += resolution) {
+        for (double x = x_min; x <= x_max; x += resolution) {
+            for (double y = y_min; y <= y_max; y += resolution) {
                 //pose.orientation.w = 0.707;
                 //pose.orientation.x = -0.707;
                 position.setX(x);
                 position.setY(y);
                 position.setZ(z);
-                for (int x_rot = 0; x_rot < 2; x_rot++) {
-                    for (int z_rot = 1; z_rot < 5; z_rot++) {
-                        if (position.length() <= radius) {
-                            tf::pointTFToMsg(position, pose.position);
-                            bool already_calculated = false;
-                            if (std::find(target_poses.begin(), target_poses.end(), pose) == target_poses.end()) {// If the pose (especially a rotatetd one is not already in target_poses)
-                                if (std::find(points.points.begin(), points.points.end(), pose.position) != points.points.end()) {
-                                    ROS_DEBUG_STREAM("Found result for " << pose.position
-                                                                         << " already in partial calculation result. Skipping.");
+                tf::pointTFToMsg(position, pose.position);
+
+                if (calculate_full) { // If a full workspace is to be calculated
+                    for (int x_rot = 0; x_rot < 2; x_rot++) {
+                        for (int z_rot = 1; z_rot <
+                                            5; z_rot++) {
+                            if (position.length() <=
+                                radius) { // First check if a full calculation should be done, then check if position is in the possible sphere defined by the arms reach
+                                bool already_calculated = false;
+                                if (std::find(target_poses.begin(), target_poses.end(), pose) ==
+                                    target_poses.end()) {// If the pose (especially a rotatetd one is not already in target_poses)
+                                    if (std::find(points.points.begin(), points.points.end(), pose.position) !=
+                                        points.points.end()) { // If pose is loaded from a partial calculation
+                                        ROS_DEBUG_STREAM("Found result for " << pose.position
+                                                                             << " already in partial calculation result. Skipping.");
+                                        already_calculated = true;
+                                    }
+                                } else {
                                     already_calculated = true;
                                 }
-                            } else {
-                                already_calculated = true;
+                                if (!already_calculated) target_poses.push_back(pose);
                             }
-                            if (!already_calculated) target_poses.push_back(pose);
+                            position = position.rotate(z_axis, z_rot * M_PI_2);
                         }
-                        position = position.rotate(z_axis, z_rot * M_PI_2);
+                        position = position.rotate(x_axis, M_PI);
                     }
-                    position = position.rotate(x_axis, M_PI);
+                } else { // Only a workspace region is to be calculated
+                    if ((complete_region or position.length() <=
+                                           radius) and (std::find(points.points.begin(), points.points.end(), pose.position) ==
+                                                        points.points.end())) { // Only if either all points should be calculated (complete_region) or they are in the sphere anyways, the pose should be added to the target_poses
+                        target_poses.push_back(pose);
+                    }
                 }
             }
         }
@@ -230,6 +272,7 @@ int main(int argc, char **argv) {
     ros::Duration elapsed = ros::Time::now() - begin;
 
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
+
     for (geometry_msgs::Pose &target_pose : target_poses) { // For all target poses do ...
         if (ros::ok()) { // Check if shutdown is requested, otherwise connection to move it and out stream would be lost and all markers will generated with "unsuccessful" state
             move_group.setPoseTarget(target_pose);
@@ -241,6 +284,7 @@ int main(int argc, char **argv) {
 
             points.points.push_back(target); // Pushed pose to the output data structure (marker list)
             if (success) {
+                ROS_INFO_STREAM("Solution found"); // ROS_DEBUG
                 points.colors.push_back(green); //Plan found
                 //            move_group.move();
             } else {

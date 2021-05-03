@@ -73,6 +73,7 @@ int main(int argc, char **argv) {
             std::vector<int> range = visualization_modes[visualization_mode];
 
             range = visualization_modes[mode];
+
             for (int i = 0; i < marker->points.size(); i++) {
                 geometry_msgs::Point point = marker->points.at(i);
                 if (point.x >= range.at(0) and point.x <= range.at(1) and point.y >= range.at(2) and
