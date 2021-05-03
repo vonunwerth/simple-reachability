@@ -19,7 +19,7 @@ To run the calculation of the workspace for your robot, run:
 
 ```roslaunch simple-reachability calculate_workspace```
 
-This will calculate the workspace in the way you defined in the *calculation.yaml*. You are for example free to calculate the workspace *reachable* workspace* or the workspace with a given end-effector orientation.
+This will calculate the workspace in the way you defined in the *calculation.yaml*. You only have o provide an end-effector orientation and then can calculate the workspace with a given end-effector orientation.
 
 The calculation could take some time depending on the resolution. The node will let you see the current progress and the estimated time to finish. If you want to speed up the calculation you could use *IKFast* to make *moveit* find a valid plan a lot faster.
 
