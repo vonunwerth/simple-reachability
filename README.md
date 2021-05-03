@@ -27,6 +27,8 @@ After the calculation has finished, the result will be **published** on the ```/
 
 To not loose the workspace calculation result, the node wil **save** it in a **rosbag** in the **simple-reachability** bags folder with an unique name.
 
+Hint: After changing the config files, you should restart your roscore to reset the ROS params. Think about embedding simple-reachability in the moveit launch-file for your robot.
+
 ##### Visualization
 
 If you want to visualize a previously calculated workspace, you can run:
