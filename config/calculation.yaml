@@ -1,7 +1,7 @@
 planning_group: "manipulator" # manipulator planning group
-manipulator_base_link: "ur10_base_link" # base link of the manipulator
-manipulator_reach: 1.30 # maximum reach of the manipulator - this will set the radius of the initial workspace sphere where all positions will be calculated in
-resolution: 0.15 # resolution of the calculated workspace in meters
+manipulator_base_link: "base_link" # base link of the manipulator
+manipulator_reach: 1.0 # maximum reach of the manipulator - this will set the radius of the initial workspace sphere where all positions will be calculated in
+resolution: 0.1 # resolution of the calculated workspace in meters
 scale: 0 # 0 means automatic scaling, otherwise the given value will be used
 publish_rate: 1 # rate in Hz in which the workspace points will be published
 file_name: "test.bag" # you could provide a file name with suffix .bag (like test.bag) for the generated workspace
@@ -13,6 +13,7 @@ ee_orientation_y: 0
 ee_orientation_z: 0
 ee_orientation_w: -0.707
 
+orientation_tolerance: 0.01 #orientation tolerance, to calculate the reachable workspace set this to a high value, default is 0.01
 # Optional: You can provide a detailed region to inspect that in more detail, if one of the values is not provided min and max are set to "0" and "manipulator_reach". If no value is set it will use a spherical volume of "manipulator_reach" size
 #x_min: -0.3
 #x_max: 0.2
