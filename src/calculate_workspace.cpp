@@ -129,10 +129,12 @@ int main(int argc, char **argv) {
     geometry_msgs::Pose pose;
     tf::Vector3 z_axis(0, 0, 1);
     tf::Vector3 x_axis(1, 0, 0);
+    double orientation_tolerance;
     node_handle.getParam("ee_orientation_x", pose.orientation.x);
     node_handle.getParam("ee_orientation_y", pose.orientation.y);
     node_handle.getParam("ee_orientation_z", pose.orientation.z);
     node_handle.getParam("ee_orientation_w", pose.orientation.w);
+    node_handle.param<double>("orientation_tolerance", orientation_tolerance, 0.01);
     ROS_INFO_STREAM(
             "End-Effector Rotation set to (x,y,z,w): (" << pose.orientation.x << ", " << pose.orientation.y << ", "
                                                         << pose.orientation.z << ", " << pose.orientation.w << ")");
@@ -221,7 +223,6 @@ int main(int argc, char **argv) {
                 position.setX(x);
                 position.setY(y);
                 position.setZ(z);
-                tf::pointTFToMsg(position, pose.position);
 
                 if (calculate_full) { // If a full workspace is to be calculated
                     for (int x_rot = 0; x_rot < 2; x_rot++) {
@@ -230,8 +231,9 @@ int main(int argc, char **argv) {
                             if (position.length() <=
                                 radius) { // First check if a full calculation should be done, then check if position is in the possible sphere defined by the arms reach
                                 bool already_calculated = false;
+                                tf::pointTFToMsg(position, pose.position);
                                 if (std::find(target_poses.begin(), target_poses.end(), pose) ==
-                                    target_poses.end()) {// If the pose (especially a rotatetd one is not already in target_poses)
+                                    target_poses.end()) {// If the pose (especially a rotated one) is not already in target_poses)
                                     if (std::find(points.points.begin(), points.points.end(), pose.position) !=
                                         points.points.end()) { // If pose is loaded from a partial calculation
                                         ROS_DEBUG_STREAM("Found result for " << pose.position
@@ -273,6 +275,7 @@ int main(int argc, char **argv) {
 
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 
+    move_group.setGoalOrientationTolerance(orientation_tolerance); // Set an orienation tolerance
     for (geometry_msgs::Pose &target_pose : target_poses) { // For all target poses do ...
         if (ros::ok()) { // Check if shutdown is requested, otherwise connection to move it and out stream would be lost and all markers will generated with "unsuccessful" state
             move_group.setPoseTarget(target_pose);
