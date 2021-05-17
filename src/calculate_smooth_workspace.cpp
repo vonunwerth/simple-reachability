@@ -1,3 +1,4 @@
+
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit_msgs/CollisionObject.h>
@@ -72,7 +73,7 @@ void shutdownNode(int sig) {
  * @return 0 on success
  */
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "simple_reachability");
+    ros::init(argc, argv, "calculate_smooth_workspace");
     ros::NodeHandle node_handle("~"); // Allow access to private ROS parameters
 
     // Load the planning group parameter from the configuration
@@ -251,8 +252,8 @@ int main(int argc, char **argv) {
                     }
                 } else { // Only a workspace region is to be calculated
                     if ((complete_region or position.length() <=
-                                           radius) and (std::find(points.points.begin(), points.points.end(), pose.position) ==
-                                                        points.points.end())) { // Only if either all points should be calculated (complete_region) or they are in the sphere anyways, the pose should be added to the target_poses
+                                            radius) and (std::find(points.points.begin(), points.points.end(), pose.position) ==
+                                                         points.points.end())) { // Only if either all points should be calculated (complete_region) or they are in the sphere anyways, the pose should be added to the target_poses
                         target_poses.push_back(pose);
                     }
                 }
