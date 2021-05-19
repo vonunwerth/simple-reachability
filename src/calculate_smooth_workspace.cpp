@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
 
     // Load the file_name parameter from the configuration
     node_handle.param("file_name", filename,
-                      (planning_group + "_" + base_link + "_" + std::to_string(resolution) + ".bag"));
+                      ("smooth" + planning_group + "_" + base_link + "_" + std::to_string(resolution) + ".bag"));
     std::string path = ros::package::getPath("simple-reachability");
 
     // Load the radius parameter from the configuration file
@@ -114,6 +114,11 @@ int main(int argc, char **argv) {
     node_handle.param<double>("y_max", y_max, radius);
     node_handle.param<double>("z_min", z_min, 0);
     node_handle.param<double>("z_max", z_max, radius);
+
+    double initial_x, initial_y, initial_z;
+    node_handle.param<double>("initial_x", initial_x, 0);
+    node_handle.param<double>("initial_y", initial_y, 0);
+    node_handle.param<double>("initial_z", initial_z, 0);
 
     if ((calculate_full and radius < resolution) or
         (std::abs(x_min - x_max) < resolution and std::abs(y_min - y_max) < resolution and std::abs(z_min - z_max) <
@@ -277,6 +282,17 @@ int main(int argc, char **argv) {
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 
     move_group.setGoalOrientationTolerance(orientation_tolerance); // Set an orienation tolerance
+
+    moveit_msgs::OrientationConstraint oc;
+    oc.header.frame_id = base_link;
+    oc.orientation.w = pose.orientation.w;
+    oc.orientation.x = pose.orientation.x;
+    oc.orientation.y = pose.orientation.y;
+    oc.orientation.z = pose.orientation.z;
+    moveit_msgs::Constraints constraints;
+    constraints.orientation_constraints.push_back(oc);
+    move_group.setPathConstraints(constraints);
+
     for (geometry_msgs::Pose &target_pose : target_poses) { // For all target poses do ...
         if (ros::ok()) { // Check if shutdown is requested, otherwise connection to move it and out stream would be lost and all markers will generated with "unsuccessful" state
             move_group.setPoseTarget(target_pose);
