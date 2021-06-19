@@ -28,11 +28,11 @@ int main(int argc, char **argv) {
     rosbag::Bag bag;
     std::string path = ros::package::getPath("simple-reachability");
 
-    std::string file_name;
-    if (!node_handle.getParam("file_name", file_name)) {
+    std::string file_name = "smooth_manipulator_ur10_base_link_0.100000.bag";
+    /*if (!node_handle.getParam("file_name", file_name)) {
         ROS_ERROR_STREAM("You must provide a file name in the visualization.yaml configuration.");
         ros::shutdown();
-    }
+    }*/
 
     bag.open(path + "/bags/" + file_name);  // BagMode is Read by default
 

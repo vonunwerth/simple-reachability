@@ -29,7 +29,8 @@ void saveROSBag(bool complete) {
     rosbag::Bag bag;
     std::string path = ros::package::getPath("simple-reachability");
     if (!complete) { // if computation is incomplete generate .partial workspace bag
-        ROS_DEBUG_STREAM("Aborted at: \n" << points.points[points.points.size() - 1] << "\n Posecount: " << points.points.size());
+        ROS_DEBUG_STREAM("Aborted at: \n" << points.points[points.points.size() - 1] << "\n Posecount: "
+                                          << points.points.size());
 
         int index = 0;
         for (geometry_msgs::Point position : points.points) {
@@ -87,38 +88,39 @@ int main(int argc, char **argv) {
 
     // Load the base_link parameter from the configuration
     std::string base_link;
-    node_handle.param<std::string>("manipulator_base_link", base_link, "base_link");
+    node_handle.param<std::string>("manipulator_base_link", base_link, "ur10_base_link");
 
     // Load the resolution parameter from the configuration
     double resolution; // Resolution in meter
-    node_handle.param<double>("resolution", resolution, 0.05);
+    node_handle.param<double>("resolution", resolution, 0.1);
     ROS_INFO_STREAM("Workspace resolution: " << resolution);
 
     // Load the file_name parameter from the configuration
     node_handle.param("file_name", filename,
-                      ("smooth" + planning_group + "_" + base_link + "_" + std::to_string(resolution) + ".bag"));
+                      ("smooth_" + planning_group + "_" + base_link + "_" + std::to_string(resolution) + ".bag"));
     std::string path = ros::package::getPath("simple-reachability");
 
     // Load the radius parameter from the configuration file
     double radius;
-    node_handle.param("manipulator_reach", radius, 0.1);
+    node_handle.param("manipulator_reach", radius, 1.30);
 
     // Loads a specified detail region from the configuration file
     bool calculate_full = !(node_handle.hasParam("x_min") or node_handle.hasParam("x_max") or
                             node_handle.hasParam("y_min") or node_handle.hasParam("y_max") or
                             node_handle.hasParam("z_min") or node_handle.hasParam("z_max"));
+    calculate_full = false;//TODO Debug
     double x_min, x_max, y_min, y_max, z_min, z_max;
-    node_handle.param<double>("x_min", x_min, 0);
+    node_handle.param<double>("x_min", x_min, -radius);
     node_handle.param<double>("x_max", x_max, radius);
-    node_handle.param<double>("y_min", y_min, 0);
+    node_handle.param<double>("y_min", y_min, -radius); //TODO fix all default values in the end
     node_handle.param<double>("y_max", y_max, radius);
-    node_handle.param<double>("z_min", z_min, 0);
-    node_handle.param<double>("z_max", z_max, radius);
+    node_handle.param<double>("z_min", z_min, -0.25); //TODO check if max param is more than min
+    node_handle.param<double>("z_max", z_max, -0.25);
 
     double initial_x, initial_y, initial_z;
     node_handle.param<double>("initial_x", initial_x, 0);
-    node_handle.param<double>("initial_y", initial_y, 0);
-    node_handle.param<double>("initial_z", initial_z, 0);
+    node_handle.param<double>("initial_y", initial_y, -0.8);
+    node_handle.param<double>("initial_z", initial_z, -0.25);
 
     if ((calculate_full and radius < resolution) or
         (std::abs(x_min - x_max) < resolution and std::abs(y_min - y_max) < resolution and std::abs(z_min - z_max) <
@@ -136,10 +138,15 @@ int main(int argc, char **argv) {
     tf::Vector3 z_axis(0, 0, 1);
     tf::Vector3 x_axis(1, 0, 0);
     double orientation_tolerance;
-    node_handle.getParam("ee_orientation_x", pose.orientation.x);
-    node_handle.getParam("ee_orientation_y", pose.orientation.y);
-    node_handle.getParam("ee_orientation_z", pose.orientation.z);
-    node_handle.getParam("ee_orientation_w", pose.orientation.w);
+    //node_handle.getParam("ee_orientation_x", pose.orientation.x);
+    //node_handle.getParam("ee_orientation_y", pose.orientation.y);
+    //node_handle.getParam("ee_orientation_z", pose.orientation.z);
+    //node_handle.getParam("ee_orientation_w", pose.orientation.w);
+    pose.orientation.x = 0.707;
+    pose.orientation.y = 0;
+    pose.orientation.z = 0;
+    pose.orientation.w = -0.707;
+
     node_handle.param<double>("orientation_tolerance", orientation_tolerance, 0.01);
     ROS_INFO_STREAM(
             "End-Effector Rotation set to (x,y,z,w): (" << pose.orientation.x << ", " << pose.orientation.y << ", "
@@ -256,9 +263,11 @@ int main(int argc, char **argv) {
                         position = position.rotate(x_axis, M_PI);
                     }
                 } else { // Only a workspace region is to be calculated
+                    tf::pointTFToMsg(position, pose.position);
                     if ((complete_region or position.length() <=
-                                            radius) and (std::find(points.points.begin(), points.points.end(), pose.position) ==
-                                                         points.points.end())) { // Only if either all points should be calculated (complete_region) or they are in the sphere anyways, the pose should be added to the target_poses
+                                            radius) and
+                        (std::find(points.points.begin(), points.points.end(), pose.position) ==
+                         points.points.end())) { // Only if either all points should be calculated (complete_region) or they are in the sphere anyways, the pose should be added to the target_poses
                         target_poses.push_back(pose);
                     }
                 }
@@ -281,35 +290,42 @@ int main(int argc, char **argv) {
 
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 
-    move_group.setGoalOrientationTolerance(orientation_tolerance); // Set an orienation tolerance
+    geometry_msgs::Pose initial_pose;
+    initial_pose.orientation = pose.orientation;
+    initial_pose.position.x = initial_x;
+    initial_pose.position.y = initial_y;
+    initial_pose.position.z = initial_z;
+    move_group.setPoseTarget(initial_pose);
+    bool success = (move_group.plan(my_plan) ==
+                    moveit::planning_interface::MoveItErrorCode::SUCCESS); // Plans a motion to a target_pose, Hint: Choose your IK Plugin in the moveit_config - IKFast could be really useful here
+    if (success) {
+        move_group.move();
+        ROS_INFO_STREAM("Reached initial pose.");
+    } else {
+        ROS_ERROR_STREAM("Can not go to initial pose.");
+        shutdownNode(25);
+    }
 
-    moveit_msgs::OrientationConstraint oc;
-    oc.header.frame_id = base_link;
-    oc.orientation.w = pose.orientation.w;
-    oc.orientation.x = pose.orientation.x;
-    oc.orientation.y = pose.orientation.y;
-    oc.orientation.z = pose.orientation.z;
-    moveit_msgs::Constraints constraints;
-    constraints.orientation_constraints.push_back(oc);
-    move_group.setPathConstraints(constraints);
 
-    for (geometry_msgs::Pose &target_pose : target_poses) { // For all target poses do ...
-        if (ros::ok()) { // Check if shutdown is requested, otherwise connection to move it and out stream would be lost and all markers will generated with "unsuccessful" state
-            move_group.setPoseTarget(target_pose);
-            bool success = (move_group.plan(my_plan) ==
-                            moveit::planning_interface::MoveItErrorCode::SUCCESS); // Plans a motion to a target_pose, Hint: Choose your IK Plugin in the moveit_config - IKFast could be really useful here
+    for (geometry_msgs::Pose target_pose : target_poses) {
+        if (ros::ok()) {
+            std::vector<geometry_msgs::Pose> waypoints = {initial_pose, target_pose};
+            moveit_msgs::RobotTrajectory trajectory;
+            const double jump_threshold = 2.0;
+            const double eef_step = 0.01;
+            double fraction = move_group.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
+            ROS_ERROR_STREAM(fraction);
+            if (fraction == 1.0) {
+                ROS_INFO("Plan found for Pose: %f %f %f", target_pose.position.x, target_pose.position.y,
+                         target_pose.position.z);
+                points.colors.push_back(green);
 
-            geometry_msgs::Point target;
-            target = target_pose.position;
-
-            points.points.push_back(target); // Pushed pose to the output data structure (marker list)
-            if (success) {
-                ROS_INFO_STREAM("Solution found"); // ROS_DEBUG
-                points.colors.push_back(green); //Plan found
-                //            move_group.move();
             } else {
-                points.colors.push_back(red); //If no plan is found MoveIt! will provide a warning in ROS_WARN
+                ROS_WARN("No Plan found for Pose: %f %f %f", target_pose.position.x, target_pose.position.y,
+                         target_pose.position.z);
+                points.colors.push_back(red);
             }
+            points.points.push_back(target_pose.position);
             step_counter++;
             ROS_INFO_STREAM("Completed " << step_counter << " of " << steps);
 
@@ -321,6 +337,7 @@ int main(int argc, char **argv) {
             ROS_INFO("Time to complete: %02d:%02d:%02d", int(hours), int(minutes % 60), int(estimated_time % 60));
         }
     }
+
     saveROSBag(true); // Save complete result and delete .partial
     ros::shutdown();
     return 0;

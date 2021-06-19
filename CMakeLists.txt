@@ -183,6 +183,12 @@ target_link_libraries(
         ${catkin_LIBRARIES}
 )
 
+target_link_libraries(
+        calculate_smooth_workspace
+        ${catkin_LIBRARIES}
+)
+
+
 #############
 ## Install ##
 #############
