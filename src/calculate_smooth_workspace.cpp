@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 
     // Load the resolution parameter from the configuration
     double resolution; // Resolution in meter
-    node_handle.param<double>("resolution", resolution, 0.1);
+    node_handle.param<double>("resolution", resolution, 0.01);
     ROS_INFO_STREAM("Workspace resolution: " << resolution);
 
     // Load the file_name parameter from the configuration
@@ -114,13 +114,13 @@ int main(int argc, char **argv) {
     node_handle.param<double>("x_max", x_max, radius);
     node_handle.param<double>("y_min", y_min, -radius); //TODO fix all default values in the end
     node_handle.param<double>("y_max", y_max, radius);
-    node_handle.param<double>("z_min", z_min, -0.25); //TODO check if max param is more than min
-    node_handle.param<double>("z_max", z_max, -0.25);
+    node_handle.param<double>("z_min", z_min, -radius); //TODO check if max param is more than min
+    node_handle.param<double>("z_max", z_max, radius);
 
     double initial_x, initial_y, initial_z;
     node_handle.param<double>("initial_x", initial_x, 0);
-    node_handle.param<double>("initial_y", initial_y, -0.8);
-    node_handle.param<double>("initial_z", initial_z, -0.25);
+    node_handle.param<double>("initial_y", initial_y, 0);
+    node_handle.param<double>("initial_z", initial_z, 0);
 
     if ((calculate_full and radius < resolution) or
         (std::abs(x_min - x_max) < resolution and std::abs(y_min - y_max) < resolution and std::abs(z_min - z_max) <
@@ -315,7 +315,7 @@ int main(int argc, char **argv) {
             const double eef_step = 0.01;
             double fraction = move_group.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
             ROS_ERROR_STREAM(fraction);
-            if (fraction == 1.0) {
+            if (fraction == 1.0) { //TODO ggf. hier mit mehr Farben arbeiten
                 ROS_INFO("Plan found for Pose: %f %f %f", target_pose.position.x, target_pose.position.y,
                          target_pose.position.z);
                 points.colors.push_back(green);
