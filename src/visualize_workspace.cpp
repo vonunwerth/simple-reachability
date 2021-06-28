@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::Marker>("visualization_marker", 10);
 
     rosbag::Bag bag;
-    std::string path = ros::package::getPath("simple-reachability");
+    std::string path = ros::package::getPath("simple_reachability");
 
     std::string file_name;
     if (!node_handle.getParam("file_name", file_name)) {

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(simple-reachability)
+project(simple_reachability)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -68,6 +68,7 @@ find_package(Boost REQUIRED COMPONENTS system filesystem date_time thread)
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
+  CLCORegion.msg
   CLCOResult.msg
 )
 
@@ -149,7 +150,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/simple-reachability.cpp
+#   src/${PROJECT_NAME}/simple_reachability.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -164,6 +165,7 @@ add_executable(calculate_workspace src/calculate_workspace.cpp)
 add_executable(visualize_workspace src/visualize_workspace.cpp)
 add_executable(calculate_constant_level_constant_orientation_workspace src/calculate_constant_level_constant_orientation_workspace.cpp)
 add_executable(calculate_constant_level_constant_orientation_regions src/calculate_constant_level_constant_orientation_regions.cpp)
+add_executable(move_arm src/move_arm.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -193,6 +195,11 @@ target_link_libraries(
 
 target_link_libraries(
         calculate_constant_level_constant_orientation_regions
+        ${catkin_LIBRARIES}
+)
+
+target_link_libraries(
+        move_arm
         ${catkin_LIBRARIES}
 )
 

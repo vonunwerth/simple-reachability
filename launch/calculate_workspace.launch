@@ -1,6 +1,6 @@
 <launch>
-  <node name="calculate_workspace" pkg="simple-reachability" type="calculate_workspace" output="screen">
-    <rosparam command="load" file="$(find simple-reachability)/config/calculation.yaml"/>
+  <node name="calculate_workspace" pkg="simple_reachability" type="calculate_workspace" output="screen">
+    <rosparam command="load" file="$(find simple_reachability)/config/calculation.yaml"/>
   </node>
 
 </launch>

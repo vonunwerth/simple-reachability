@@ -1,15 +1,15 @@
-# simple-reachability
+# simple_reachability
 ![](https://img.shields.io/badge/ROS-noetic-success)
 
 This package allows you to visualize the workspace of your robot easily considering collision detection and joint limits. The calculation will be done using the **moveit** framwork. So the only thing you need is a **moveit_config** of your robot.
 
 ### Preparation
 
-Before launching the **simple-reachability** nodes launch the *demo.launch* file from your *moveit* configuration to provide a planning interface and open up **RVIZ**.
+Before launching the **simple_reachability** nodes launch the *demo.launch* file from your *moveit* configuration to provide a planning interface and open up **RVIZ**.
 
 ```roslaunch my_robot_moveit_config demo.launch```
 
-**Important:** Configure the *config* files in the *config* folder of the **simple-reachability** folder to get the result you like. There is one for each node. You will find a documentation of all parameters in the configuration file.
+**Important:** Configure the *config* files in the *config* folder of the **simple_reachability** folder to get the result you like. There is one for each node. You will find a documentation of all parameters in the configuration file.
 
 ### Usage
 
@@ -17,7 +17,7 @@ Before launching the **simple-reachability** nodes launch the *demo.launch* file
 
 To run the calculation of the workspace for your robot, run:
 
-```roslaunch simple-reachability calculate_workspace```
+```roslaunch simple_reachability calculate_workspace```
 
 This will calculate the workspace in the way you defined in the *calculation.yaml*. You only have o provide an end-effector orientation and then can calculate the workspace with a given end-effector orientation.
 
@@ -25,15 +25,15 @@ The calculation could take some time depending on the resolution. The node will 
 
 After the calculation has finished, the result will be **published** on the ```/calculate_workspace/visualization_marker``` topic. You can easily visualize it by adding the display type *Marker* in RVIZ.
 
-To not loose the workspace calculation result, the node wil **save** it in a **rosbag** in the **simple-reachability** bags folder with an unique name.
+To not loose the workspace calculation result, the node wil **save** it in a **rosbag** in the **simple_reachability** bags folder with an unique name.
 
-Hint: After changing the config files, you should restart your roscore to reset the ROS params. Think about embedding simple-reachability in the moveit launch-file for your robot.
+Hint: After changing the config files, you should restart your roscore to reset the ROS params. Think about embedding simple_reachability in the moveit launch-file for your robot.
 
 ##### Visualization
 
 If you want to visualize a previously calculated workspace, you can run:
 
-```roslaunch simple-reachability visualize_workspace.launch```
+```roslaunch simple_reachability visualize_workspace.launch```
 
 Make sure you provide the name of the file you want to run in the *visualization.yaml*.
 

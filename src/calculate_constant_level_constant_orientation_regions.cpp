@@ -11,6 +11,8 @@
 #include <rosbag/view.h>
 #include <cstdio>
 #include <unordered_map>
+#include "simple_reachability/CLCOResult.h"
+#include "simple_reachability/CLCORegion.h"
 
 /**
  * Calculates the workspace of a robot
@@ -174,10 +176,15 @@ int main(int argc, char **argv) {
 
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 
+
+    simple_reachability::CLCOResult result;
     std::vector<geometry_msgs::Pose> region_poses; //Count "green" points for each initial pose
     std::vector<int> region_counts;
     for (geometry_msgs::Pose initial_pose : initial_poses) {
+        simple_reachability::CLCORegion r;
         int result_count = 0;
+        r.initial_pose = initial_pose;
+        r.count = 0;
         move_group.setPoseTarget(initial_pose);
         bool success = (move_group.plan(my_plan) ==
                         moveit::planning_interface::MoveItErrorCode::SUCCESS); // Plans a motion to a target_pose, Hint: Choose your IK Plugin in the moveit_config - IKFast could be really useful here
@@ -204,6 +211,8 @@ int main(int argc, char **argv) {
                     ROS_INFO("Plan found for Pose: %f %f %f", target_pose.position.x, target_pose.position.y,
                              target_pose.position.z);
                     result_count++;
+                    r.count++;
+                    r.reachable_poses.push_back(target_pose);
 
                 } else {
                     ROS_WARN("No Plan found for Pose: %f %f %f", target_pose.position.x, target_pose.position.y,
@@ -222,7 +231,9 @@ int main(int argc, char **argv) {
         }
         region_poses.push_back(initial_pose);
         region_counts.push_back(result_count);
+        result.regions.push_back(r);
     }
+
 
     for (geometry_msgs::Pose region : region_poses) {
         int counter = 0;
@@ -231,11 +242,11 @@ int main(int argc, char **argv) {
     }
 
     rosbag::Bag bag;
-    std::string filename;
-    std::string path = ros::package::getPath("simple-reachability");
+
+    std::string filename = "clco.bag";
+    std::string path = ros::package::getPath("simple_reachability");
     bag.open(path + "/bags/" + filename, rosbag::bagmode::Write); // Save bag in the bags folder of the package
-    bag.write("/clco_results", ros::Time::now(),
-              filename);
+    bag.write("/clco_results", ros::Time::now(), result);
     bag.close();
 
     ros::shutdown();

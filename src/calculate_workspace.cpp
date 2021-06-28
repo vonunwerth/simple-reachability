@@ -26,7 +26,7 @@ visualization_msgs::Marker points;
  */
 void saveROSBag(bool complete) {
     rosbag::Bag bag;
-    std::string path = ros::package::getPath("simple-reachability");
+    std::string path = ros::package::getPath("simple_reachability");
     if (!complete) { // if computation is incomplete generate .partial workspace bag
         ROS_DEBUG_STREAM("Aborted at: \n" << points.points[points.points.size() - 1] << "\n Posecount: " << points.points.size());
 
@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
     // Load the file_name parameter from the configuration
     node_handle.param("file_name", filename,
                       (planning_group + "_" + base_link + "_" + std::to_string(resolution) + ".bag"));
-    std::string path = ros::package::getPath("simple-reachability");
+    std::string path = ros::package::getPath("simple_reachability");
 
     // Load the radius parameter from the configuration file
     double radius;
