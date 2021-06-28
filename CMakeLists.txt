@@ -29,6 +29,7 @@ find_package(catkin REQUIRED COMPONENTS
     tf2_eigen
     tf2_geometry_msgs
     roscpp
+    message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -65,11 +66,10 @@ find_package(Boost REQUIRED COMPONENTS system filesystem date_time thread)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  CLCOResult.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -86,10 +86,11 @@ find_package(Boost REQUIRED COMPONENTS system filesystem date_time thread)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -132,6 +133,7 @@ catkin_package(
         interactive_markers
         DEPENDS
         EIGEN3
+        message_runtime
 )
 
 ###########
@@ -160,7 +162,8 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(calculate_workspace src/calculate_workspace.cpp)
 add_executable(visualize_workspace src/visualize_workspace.cpp)
-add_executable(calculate_smooth_workspace src/calculate_smooth_workspace.cpp)
+add_executable(calculate_constant_level_constant_orientation_workspace src/calculate_constant_level_constant_orientation_workspace.cpp)
+add_executable(calculate_constant_level_constant_orientation_regions src/calculate_constant_level_constant_orientation_regions.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -184,7 +187,12 @@ target_link_libraries(
 )
 
 target_link_libraries(
-        calculate_smooth_workspace
+        calculate_constant_level_constant_orientation_workspace
+        ${catkin_LIBRARIES}
+)
+
+target_link_libraries(
+        calculate_constant_level_constant_orientation_regions
         ${catkin_LIBRARIES}
 )
 

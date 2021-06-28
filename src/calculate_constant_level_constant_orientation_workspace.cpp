@@ -74,7 +74,7 @@ void shutdownNode(int sig) {
  * @return 0 on success
  */
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "calculate_smooth_workspace");
+    ros::init(argc, argv, "calculate_constant_level_constant_orientation_workspace");
     ros::NodeHandle node_handle("~"); // Allow access to private ROS parameters
 
     // Load the planning group parameter from the configuration
@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
 
     // Load the file_name parameter from the configuration
     node_handle.param("file_name", filename,
-                      ("smooth_" + planning_group + "_" + base_link + "_" + std::to_string(resolution) + ".bag"));
+                      ("constant_level_constant_orientation_" + planning_group + "_" + base_link + "_" + std::to_string(resolution) + ".bag"));
     std::string path = ros::package::getPath("simple-reachability");
 
     // Load the radius parameter from the configuration file
@@ -208,6 +208,7 @@ int main(int argc, char **argv) {
     ros::AsyncSpinner spinner(1);
     spinner.start();
     moveit::planning_interface::MoveGroupInterface move_group(planning_group);
+    //TODO move_group.setEndEffector() ?
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
 
     robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
@@ -314,7 +315,7 @@ int main(int argc, char **argv) {
             const double jump_threshold = 2.0;
             const double eef_step = 0.01;
             double fraction = move_group.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
-            ROS_ERROR_STREAM(fraction);
+            ROS_ERROR_STREAM(fraction); //TODO ggf. Stellen, an denen Probleme auftreten schwarz markieren
             if (fraction == 1.0) { //TODO ggf. hier mit mehr Farben arbeiten
                 ROS_INFO("Plan found for Pose: %f %f %f", target_pose.position.x, target_pose.position.y,
                          target_pose.position.z);

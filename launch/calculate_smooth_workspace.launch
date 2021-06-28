@@ -1,6 +1,0 @@
-<launch>
-  <node name="calculate_workspace" pkg="simple-reachability" type="calculate_smooth_workspace" output="screen">
-    <rosparam command="load" file="$(find simple-reachability)/config/smooth.yaml"/>
-  </node>
-
-</launch>
