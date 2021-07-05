@@ -14,6 +14,8 @@
 #include "simple_reachability/CLCOResult.h"
 #include "simple_reachability/CLCORegion.h"
 
+std_msgs::ColorRGBA newColor(std_msgs::ColorRGBA rgba);
+
 /**
  * Calculates the workspace of a robot
  * @param argc Not used
@@ -39,12 +41,12 @@ int main(int argc, char **argv) {
 
     // Load the resolution parameter from the configuration
     double resolution; // Resolution in meter
-    node_handle.param<double>("resolution", resolution, 0.05);
+    node_handle.param<double>("resolution", resolution, 0.6);
     ROS_INFO_STREAM("Workspace resolution: " << resolution);
 
     // Load the resolution parameter from the configuration
     double resolution_initials; // Resolution in meter
-    node_handle.param<double>("resolution_initials", resolution_initials, 0.05);
+    node_handle.param<double>("resolution_initials", resolution_initials, 0.6);
     ROS_INFO_STREAM("Workspace resolution: " << resolution_initials);
 
 
@@ -116,8 +118,8 @@ int main(int argc, char **argv) {
     tf::Point position;
 
     // Calculate all target poses on the plane
-    std::vector<geometry_msgs::Pose> target_poses; // List for all pose to go to from each initial point
-    std::vector<geometry_msgs::Point> temp_positions; // Must be used because Pose has no ==
+    std::vector <geometry_msgs::Pose> target_poses; // List for all pose to go to from each initial point
+    std::vector <geometry_msgs::Point> temp_positions; // Must be used because Pose has no ==
     for (double z = z_min; z <= z_max; z += resolution) {
         for (double x = x_min; x <= x_max; x += resolution) {
             for (double y = y_min; y <= y_max; y += resolution) {
@@ -130,7 +132,7 @@ int main(int argc, char **argv) {
                 // Only a workspace region is to be calculated
                 tf::pointTFToMsg(position, pose.position);
                 if ((position.length() <=
-                                        radius) and
+                     radius) and
                     (std::find(temp_positions.begin(), temp_positions.end(), pose.position) ==
                      temp_positions.end())) { // Only if they are in the sphere anyways, the pose should be added to the target_poses
                     target_poses.push_back(pose);
@@ -144,7 +146,7 @@ int main(int argc, char **argv) {
 
     //TODO as method with resolution parameter
     //Calculate all initial poses on the plane using their own resolution
-    std::vector<geometry_msgs::Pose> initial_poses;
+    std::vector <geometry_msgs::Pose> initial_poses;
     temp_positions.clear();
     for (double z = z_min; z <= z_max; z += resolution_initials) {
         for (double x = x_min; x <= x_max; x += resolution_initials) {
@@ -176,11 +178,26 @@ int main(int argc, char **argv) {
 
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 
+    visualization_msgs::Marker points;
+    points.header.frame_id = base_link;
+    points.header.stamp = ros::Time(0);
+    points.ns = "points";
+    points.action = visualization_msgs::Marker::ADD;
+    points.id = 0;
+    points.type = visualization_msgs::Marker::POINTS;
+    double scale;
+    node_handle.param<double>("scale", scale, 0);
+    if (scale == 0) {
+        points.scale.x = resolution / 5;
+        points.scale.y = resolution / 5;
+    } else {
+        points.scale.x = scale;
+        points.scale.y = scale;
+    }
 
     simple_reachability::CLCOResult result;
-    std::vector<geometry_msgs::Pose> region_poses; //Count "green" points for each initial pose
-    std::vector<int> region_counts;
     for (geometry_msgs::Pose initial_pose : initial_poses) {
+        //TODO Variable die entscheidet ob einzelne beste Region (linear im cart. space) oder alle Regionen (mit verschmelzungen) berechnet werden sollen
         simple_reachability::CLCORegion r;
         int result_count = 0;
         r.initial_pose = initial_pose;
@@ -190,9 +207,11 @@ int main(int argc, char **argv) {
                         moveit::planning_interface::MoveItErrorCode::SUCCESS); // Plans a motion to a target_pose, Hint: Choose your IK Plugin in the moveit_config - IKFast could be really useful here
         if (success) {
             move_group.move();
-            ROS_INFO("Reached initial pose: %f|%f|%f", initial_pose.position.x, initial_pose.position.y, initial_pose.position.z);
+            ROS_INFO("Reached initial pose: %f|%f|%f", initial_pose.position.x, initial_pose.position.y,
+                     initial_pose.position.z);
         } else {
-            ROS_ERROR("Can not go to initial pose: %f|%f|%f", initial_pose.position.x, initial_pose.position.y, initial_pose.position.z);
+            ROS_ERROR("Can not go to initial pose: %f|%f|%f", initial_pose.position.x, initial_pose.position.y,
+                      initial_pose.position.z);
             ROS_WARN("Skipping %ld steps.", target_poses.size());
             step_counter += target_poses.size();
             ROS_INFO_STREAM("Completed " << step_counter << " of " << steps);
@@ -201,7 +220,7 @@ int main(int argc, char **argv) {
 
         for (geometry_msgs::Pose target_pose : target_poses) {
             if (ros::ok()) {
-                std::vector<geometry_msgs::Pose> waypoints = {initial_pose, target_pose};
+                std::vector <geometry_msgs::Pose> waypoints = {initial_pose, target_pose};
                 moveit_msgs::RobotTrajectory trajectory;
                 const double jump_threshold = 2.0;
                 const double eef_step = 0.01;
@@ -229,26 +248,57 @@ int main(int argc, char **argv) {
                 ROS_INFO("Time to complete: %02d:%02d:%02d", int(hours), int(minutes % 60), int(estimated_time % 60));
             }
         }
-        region_poses.push_back(initial_pose);
-        region_counts.push_back(result_count);
-        result.regions.push_back(r);
+
+        bool already_in = false;
+        for (simple_reachability::CLCORegion region : result.regions) {
+            if (std::find(region.reachable_poses.begin(), region.reachable_poses.end(), initial_pose) !=
+                region.reachable_poses.end()) { // If initial pose not already in
+                // Dann verschmelze die hier berechneten Ergebnisse mit den bestehenden der Region
+                already_in = true;
+                std::vector<geometry_msgs::Pose> combinedReachablePoses = region.reachable_poses;
+                for (geometry_msgs::Pose p : r.reachable_poses) {
+                    if (std::find(combinedReachablePoses.begin(), combinedReachablePoses.end(), p) == combinedReachablePoses.end()) combinedReachablePoses.push_back(p);
+                }
+                region.reachable_poses = combinedReachablePoses;
+            }
+        }
+        if (!already_in) result.regions.push_back(r); //TODO nur einfügen, wenn initial pose noch keine reachable pose einer anderen initial_pose ist
+
     }
 
-
-    for (geometry_msgs::Pose region : region_poses) {
-        int counter = 0;
-        ROS_INFO("Init: %f|%f|%f --> %d", region.position.x, region.position.y, region.position.z, region_counts[counter]);
-        counter++;
+    std_msgs::ColorRGBA color;
+    color.r = false;
+    color.g = true;
+    color.b = false;
+    color.a =    1.0f;
+    for (simple_reachability::CLCORegion clco : result.regions) {
+        for (geometry_msgs::Pose p : clco.reachable_poses) {
+            points.points.push_back(p.position);
+            points.colors.push_back(color);
+        }
+        color = newColor(color);
     }
 
     rosbag::Bag bag;
-
     std::string filename = "clco.bag";
     std::string path = ros::package::getPath("simple_reachability");
     bag.open(path + "/bags/" + filename, rosbag::bagmode::Write); // Save bag in the bags folder of the package
     bag.write("/clco_results", ros::Time::now(), result);
     bag.close();
 
+    filename = "clco_marker.bag";
+    bag.open(path + "/bags/" + filename, rosbag::bagmode::Write); // Save bag in the bags folder of the package
+    bag.write("/clco_results", ros::Time::now(), points);
+    bag.close();
+
     ros::shutdown();
     return 0;
+}
+
+std_msgs::ColorRGBA newColor(std_msgs::ColorRGBA color) {
+    std_msgs::ColorRGBA newColor;
+    newColor.r = (double)rand()/RAND_MAX;
+    newColor.g = (double)rand()/RAND_MAX;
+    newColor.b = (double)rand()/RAND_MAX;
+    return newColor;
 }
