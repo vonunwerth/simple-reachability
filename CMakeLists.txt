@@ -166,6 +166,8 @@ add_executable(visualize_workspace src/visualize_workspace.cpp)
 add_executable(calculate_constant_level_constant_orientation_workspace src/calculate_constant_level_constant_orientation_workspace.cpp)
 add_executable(calculate_constant_level_constant_orientation_regions src/calculate_constant_level_constant_orientation_regions.cpp)
 add_executable(move_arm src/move_arm.cpp)
+add_executable(region_analyzer src/region_analyzer.cpp src/Region.cpp src/Region.h)
+add_executable(region_visualizer src/region_visualizer.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -200,6 +202,16 @@ target_link_libraries(
 
 target_link_libraries(
         move_arm
+        ${catkin_LIBRARIES}
+)
+
+target_link_libraries(
+        region_analyzer
+        ${catkin_LIBRARIES}
+)
+
+target_link_libraries(
+        region_visualizer
         ${catkin_LIBRARIES}
 )
 

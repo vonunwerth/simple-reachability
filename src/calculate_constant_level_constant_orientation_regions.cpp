@@ -44,8 +44,8 @@ int main(int argc, char **argv) {
 
     // Load the resolution parameter from the configuration
     double resolution_initials; // Resolution in meter
-    node_handle.param<double>("resolution_initials", resolution_initials, 0.05);
-    ROS_INFO_STREAM("Workspace resolution: " << resolution_initials);
+    node_handle.param<double>("resolution_initial_poses", resolution_initials, 0.05);
+    ROS_INFO_STREAM("Initial pose resolution: " << resolution_initials);
 
 
     // Load the radius parameter from the configuration file
@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
     // Calculate all target poses on the plane
     std::vector<geometry_msgs::Pose> target_poses; // List for all pose to go to from each initial point
     std::vector<geometry_msgs::Point> temp_positions; // Must be used because Pose has no ==
-    for (double z = z_min; z <= z_max; z += resolution) {
+    for (double z = z_min; z <= z_max; z += resolution) { //TODO als Methode auslagern für inital und targets
         for (double x = x_min; x <= x_max; x += resolution) {
             for (double y = y_min; y <= y_max; y += resolution) {
                 //pose.orientation.w = 0.707;
@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
                 }
             }
             steps = target_poses.size() * initial_poses.size();
-            ROS_INFO("Currently in queue: %lu steps: %zu targets and %d initials.", steps, target_poses.size(), 0);
+            ROS_INFO("Currently in queue: %lu steps: %zu targets and %zu initials.", steps, target_poses.size(), initial_poses.size());
         }
     }
 
@@ -180,6 +180,7 @@ int main(int argc, char **argv) {
     simple_reachability::CLCOResult result;
     std::vector<geometry_msgs::Pose> region_poses; //Count "green" points for each initial pose
     std::vector<int> region_counts;
+
     for (geometry_msgs::Pose initial_pose : initial_poses) {
         simple_reachability::CLCORegion r;
         int result_count = 0;
