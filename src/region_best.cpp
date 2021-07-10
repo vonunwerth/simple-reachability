@@ -6,6 +6,46 @@
 #include "simple_reachability/CLCOResult.h"
 #include "Region.cpp"
 
+Region master_region;
+
+int region_with_initial_pose(geometry_msgs::Pose pose, const std::vector<Region> &region_list) {
+    for (const Region &r : region_list) {
+        if (Region::equal_position(r.initial_pose.position, pose.position)) {
+            return r.id;
+        }
+    }
+    return -1; // Region with that initial pose not found
+}
+
+/**
+ * If there is a way from p to all poses in the master_region and a way from all poses in the master region to p fill the master_region
+ * @param p
+ * @param region_list
+ */
+void paths(const ReachablePose& p, std::vector<Region> region_list) {
+    int p_to_all_count = 0;
+    for (const ReachablePose& goal : master_region.reachable_poses) {
+        if (region_list[region_with_initial_pose(p.pose, region_list)].contains(goal.pose)) {
+            p_to_all_count++;
+        }
+    }
+    bool p_to_all = false;
+    if (p_to_all_count == master_region.reachable_poses.size()) p_to_all = true;
+
+    int all_to_p_count = 0;
+    for (const ReachablePose& start : master_region.reachable_poses) {
+        if (region_list[region_with_initial_pose(start.pose, region_list)].contains(p.pose)) {
+            all_to_p_count++;
+        }
+    }
+    bool all_to_p = false;
+    if (all_to_p_count == master_region.reachable_poses.size()) all_to_p = true;
+
+    if (all_to_p and p_to_all_count) {
+        master_region.reachable_poses.push_back(p);
+    }
+}
+
 int main(int argc, char **argv) {
     ros::init(argc, argv, "calculate_constant_level_constant_orientation_workspace");
     ros::NodeHandle node_handle("~"); // Allow access to private ROS parameters
@@ -49,57 +89,28 @@ int main(int argc, char **argv) {
 
     ROS_INFO("Found %zu regions.", region_list.size());
 
-    // remove regions and reachable poses which are not in a specified "region"
-    std::vector<Region> cutted_region_list;
-    float y_max = -0.40;
-    for (const Region& region : region_list) {
-        if (region.initial_pose.position.y <= y_max) {
-            std::vector<geometry_msgs::Pose> new_re_poses;
-            for (geometry_msgs::Pose pose : region.reachable_poses) {
-                if (pose.position.y <= y_max) {
-                    new_re_poses.push_back(pose);
-                }
-            }
-            Region r(region.initial_pose, new_re_poses, region.id);
-            cutted_region_list.push_back(r);
-        }
-    }
-    ROS_INFO("Reduced to %zu regions", cutted_region_list.size());
-
-    unsigned long max = 0;
-    Region best = Region(0, 0);
-    for (const Region& region: cutted_region_list) {
-        if (region.reachable_poses.size() > max) {
-            max = region.reachable_poses.size();
-            best = region;
-        }
-    }
-
     std_msgs::ColorRGBA BLACK;
     BLACK.r = 0;
     BLACK.g = 0;
     BLACK.b = 0;
     BLACK.a = 1.0;
 
-    std::vector<Region> region_list_best;
-    region_list_best.push_back(best);
+    Region region1 = region_list[0];
+//    for (Region region : region_list) {
+//
+//    }
 
-    ROS_INFO("Best region has id: %d and hold %zu reachable poses.", best.id, best.reachable_poses.size());
-    for (const Region& region : region_list_best) {
-        std_msgs::ColorRGBA color;
-        color.r = rand() % 255;
-        color.g = rand() % 255;
-        color.b = rand() % 255;
-        color.a = 1.0;
-        for (geometry_msgs::Pose pose : region.reachable_poses) {
-            marker.points.push_back(pose.position);
-            if (Region::equal_position(pose.position, region.initial_pose.position))
-                marker.colors.push_back(BLACK);
-            else
-                marker.colors.push_back(color);
-        }
+
+    master_region.initial_pose = region1.initial_pose;
+    ReachablePose rp(region1.calculate_neighbours(region1.initial_pose), region1.initial_pose);
+    master_region.reachable_poses.push_back(rp);
+    paths(rp, region_list);
+
+    for (ReachablePose p : region1.reachable_poses) { // Es reicht aus, alle Posen in region1 zu checken und nicht rekursiv von der initialpose alle nachbarn zu checken, da auf keinen Fall mehr dazu kommen als bereits in region1 sind --> alle außerhalb von region1 sind von der initialpose von region1 nicht erreichbar! Über Nachbarn wäre effizienter, aber egal
+        paths(p, region_list);
     }
 
+    Region rr = master_region;
     ROS_INFO("Finished.");
     bag.close();
 
