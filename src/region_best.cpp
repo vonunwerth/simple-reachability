@@ -47,7 +47,7 @@ void paths(const geometry_msgs::Pose &p, std::vector<Region> region_list, Region
     bool all_to_p = false;
     if (all_to_p_count == master_region.reachable_poses.size()) all_to_p = true;
 
-    if (all_to_p and p_to_all_count) {
+    if (all_to_p and p_to_all) {
         master_region.reachable_poses.push_back(p);
     }
 }
@@ -83,18 +83,12 @@ int main(int argc, char **argv) {
     BLACK.b = 0;
     BLACK.a = 1.0;
 
-//    for (Region region : region_list) {
-//
-//    }
-
-    //std::vector<Region> cutted_region_list(region_list.begin(), region_list.begin() + 3);
     for (const Region &region : region_list) {
         ROS_INFO("Calculating master region %d", region.id);
         Region master_region;
         master_region.id = region.id;
         master_region.initial_pose = region.initial_pose;
         master_region.reachable_poses.push_back(region.initial_pose);
-        paths(master_region.initial_pose, region_list, master_region);
 
         for (geometry_msgs::Pose p : region.reachable_poses) { // Es reicht aus, alle Posen in region1 zu checken und nicht rekursiv von der initialpose alle nachbarn zu checken, da auf keinen Fall mehr dazu kommen als bereits in region1 sind --> alle außerhalb von region1 sind von der initialpose von region1 nicht erreichbar! Über Nachbarn wäre effizienter, aber egal
             paths(p, region_list, master_region);
@@ -103,10 +97,9 @@ int main(int argc, char **argv) {
     }
 
 
-
     std::vector<Region> cutted_region_list;
     float y_max = 100000.40;
-    for (const Region& region : master_regions) {
+    for (const Region &region : master_regions) {
         if (region.initial_pose.position.y <= y_max) {
             std::vector<geometry_msgs::Pose> new_re_poses;
             for (geometry_msgs::Pose pose : region.reachable_poses) {
@@ -121,7 +114,7 @@ int main(int argc, char **argv) {
     ROS_INFO("Reduced to %zu regions", cutted_region_list.size());
 
 
-    for (const Region& r : cutted_region_list) {
+    for (const Region &r : cutted_region_list) {
         ROS_INFO("%d : %zu", r.id, r.reachable_poses.size());
     }
 
@@ -133,7 +126,8 @@ int main(int argc, char **argv) {
             master_id = mr.id;
         }
     }
-    ROS_INFO("Max Master Region %d holds %zu reachable poses", master_regions[master_id].id,master_regions[master_id].reachable_poses.size());
+    ROS_INFO("Max Master Region %d holds %zu reachable poses", master_regions[master_id].id,
+             master_regions[master_id].reachable_poses.size());
 
     for (int i = 0; i < cutted_region_list.size(); i++) {
         visualization_msgs::Marker marker;
@@ -155,7 +149,8 @@ int main(int argc, char **argv) {
         marker_initial_poses.scale.x = 0.05;
         marker_initial_poses.scale.y = 0.05;
         marker_initial_poses.scale.z = 0.05;
-        ROS_INFO("Writing bag for Region %d with %zu poses.", cutted_region_list[i].id, cutted_region_list[i].reachable_poses.size());
+        ROS_INFO("Writing bag for Region %d with %zu poses.", cutted_region_list[i].id,
+                 cutted_region_list[i].reachable_poses.size());
         //Save results in markers
         std_msgs::ColorRGBA color;
         color.r = rand() % 255;
@@ -174,7 +169,8 @@ int main(int argc, char **argv) {
 
         rosbag::Bag saveBag;
         std::string filename = "master_region_visualizer" + std::to_string(cutted_region_list[i].id) + ".bag";
-        saveBag.open(path + "/bags/masters/" + filename, rosbag::bagmode::Write); // Save bag in the bags folder of the package
+        saveBag.open(path + "/bags/masters/" + filename,
+                     rosbag::bagmode::Write); // Save bag in the bags folder of the package
         saveBag.write("/visualization_marker", ros::Time::now(), marker);
         saveBag.close();
 

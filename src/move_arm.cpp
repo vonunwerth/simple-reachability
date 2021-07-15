@@ -68,6 +68,8 @@ int main(int argc, char **argv) {
 //    test_constraints.orientation_constraints.push_back(ocm);
 //    move_group.setPathConstraints(test_constraints);
 
+    geometry_msgs::Pose p2 = move_group.getCurrentPose().pose;
+    geometry_msgs::Pose p = move_group.getCurrentPose("ur10_base_link").pose;
 
     ROS_INFO_STREAM("Moving to initial pose");
     bool success = (move_group.plan(my_plan) ==

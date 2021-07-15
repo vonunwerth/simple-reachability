@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
     ROS_INFO("Reduced to %zu regions", cutted_region_list.size());
 
     unsigned long max = 0;
-    Region best = Region(0, 0);
+    Region best;
     for (const Region& region: cutted_region_list) {
         if (region.reachable_poses.size() > max) {
             max = region.reachable_poses.size();
