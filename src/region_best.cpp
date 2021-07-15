@@ -47,6 +47,7 @@ void paths(const geometry_msgs::Pose &p, std::vector<Region> region_list, Region
     bool all_to_p = false;
     if (all_to_p_count == master_region.reachable_poses.size()) all_to_p = true;
 
+    //ROS_INFO("A->P: %d, P->A: %d, atpCount: %d, ptaCount: %d, All_to_p and p_to_all_COUNT: %d, All_to_p and p_to_all: %d, Size: %zu", all_to_p, p_to_all, all_to_p_count, p_to_all_count, (all_to_p and p_to_all_count), (all_to_p and p_to_all), master_region.reachable_poses.size());
     if (all_to_p and p_to_all) {
         master_region.reachable_poses.push_back(p);
     }
@@ -98,7 +99,7 @@ int main(int argc, char **argv) {
 
 
     std::vector<Region> cutted_region_list;
-    float y_max = 100000.40;
+    float y_max = -0.40;
     for (const Region &region : master_regions) {
         if (region.initial_pose.position.y <= y_max) {
             std::vector<geometry_msgs::Pose> new_re_poses;
@@ -144,8 +145,8 @@ int main(int argc, char **argv) {
         marker_initial_poses.id = 1;
         marker.type = visualization_msgs::Marker::POINTS;
         marker_initial_poses.type = visualization_msgs::Marker::SPHERE_LIST;
-        marker.scale.x = 0.02; //TODO depending on resolution
-        marker.scale.y = 0.02;
+        marker.scale.x = 0.05; //TODO depending on resolution
+        marker.scale.y = 0.05;
         marker_initial_poses.scale.x = 0.05;
         marker_initial_poses.scale.y = 0.05;
         marker_initial_poses.scale.z = 0.05;
@@ -174,7 +175,5 @@ int main(int argc, char **argv) {
         saveBag.write("/visualization_marker", ros::Time::now(), marker);
         saveBag.close();
 
-
-        int y = 4;
     }
 }
