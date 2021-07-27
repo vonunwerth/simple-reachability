@@ -1,21 +1,19 @@
-
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
-#include <moveit_msgs/CollisionObject.h>
 #include <moveit_visual_tools/moveit_visual_tools.h>
 #include <moveit/kinematics_metrics/kinematics_metrics.h>
 #include <tf/tf.h>
 #include <rosbag/bag.h>
 #include <cmath>
-#include <csignal>
 #include <rosbag/view.h>
 #include <cstdio>
 #include <unordered_map>
 #include "simple_reachability/CLCOResult.h"
 #include "simple_reachability/CLCORegion.h"
+#include "utils.cpp"
 
 /**
- * Calculates the workspace of a robot
+ * Calculates the CLCO regions
  * @param argc Not used
  * @param argv Not used
  * @return 0 on success
@@ -56,11 +54,14 @@ int main(int argc, char **argv) {
     double x_min, x_max, y_min, y_max, z_min, z_max;
     node_handle.param<double>("x_min", x_min, -radius);
     node_handle.param<double>("x_max", x_max, radius);
-    node_handle.param<double>("y_min", y_min, -radius); //TODO fix all default values in the end
+    node_handle.param<double>("y_min", y_min, -radius);
     node_handle.param<double>("y_max", y_max, radius);
-    node_handle.param<double>("z_min", z_min, -radius); //TODO check if max param is more than min
+    node_handle.param<double>("z_min", z_min, -radius);
     node_handle.param<double>("z_max", z_max, radius);
 
+    if ((x_min > x_max) or (y_min > y_max) or (z_min > z_max)) {
+        ROS_ERROR_STREAM("The minimum values must be lower/equal than the max values for a region");
+    }
 
     if ((radius < resolution) or
         (std::abs(x_min - x_max) < resolution and std::abs(y_min - y_max) < resolution and std::abs(z_min - z_max) <
@@ -93,7 +94,7 @@ int main(int argc, char **argv) {
     unsigned long steps = 0;
     unsigned long step_counter = 0;
 
-    ros::AsyncSpinner spinner(1);
+    ros::AsyncSpinner spinner(12);
     spinner.start();
     moveit::planning_interface::MoveGroupInterface move_group(planning_group);
     //TODO move_group.setEndEffector() ?
@@ -246,9 +247,12 @@ int main(int argc, char **argv) {
 
     std::string filename = "clco.bag";
     std::string path = ros::package::getPath("simple_reachability");
-    bag.open(path + "/bags/" + filename, rosbag::bagmode::Write); // Save bag in the bags folder of the package
+    bag.open(path + "/bags/clco" + filename, rosbag::bagmode::Write); // Save bag in the bags folder of the package
     bag.write("/clco_results", ros::Time::now(), result);
     bag.close();
+
+    path = path + "/bags/clco/singles/";
+    saveIndividualBagFiles(result.regions, path);
 
     ros::shutdown();
     return 0;

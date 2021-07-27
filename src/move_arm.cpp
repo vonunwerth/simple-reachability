@@ -51,10 +51,34 @@ int main(int argc, char **argv) {
     initial_pose.orientation.y = 0;
     initial_pose.orientation.z = 0;
     initial_pose.position.x = 0.75;//move_group.getCurrentPose().pose.position.x;
-    initial_pose.position.y = 0;//move_group.getCurrentPose().pose.position.y;
+    initial_pose.position.y = 0.0;//move_group.getCurrentPose().pose.position.y;
     initial_pose.position.z = -0.35;//move_group.getCurrentPose().pose.position.z;
     move_group.setPoseTarget(initial_pose);
 
+    std_msgs::ColorRGBA BLACK;
+    BLACK.r = 200;
+    BLACK.g = 200;
+    BLACK.b = 200;
+    BLACK.a = 1.0;
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "ur10_base_link";
+    marker.header.stamp = ros::Time(0);
+    marker.ns = "points";
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.id = 0;
+    marker.type = visualization_msgs::Marker::POINTS;
+
+    double resolution;
+    node_handle.param<double>("resolution", resolution, 0.01);
+    ROS_INFO_STREAM("Workspace resolution: " << resolution);
+
+    marker.scale.x = resolution;
+    marker.scale.y = resolution;
+
+    marker.points.push_back(initial_pose.position);
+    marker.colors.push_back(BLACK);
+
+    ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::Marker>("visualization_marker", 1);
 //    moveit_msgs::OrientationConstraint ocm;
 //    ocm.link_name = "ur10_wrist_3_link";
 //    ocm.header.frame_id = "ur10_base_link";
@@ -92,6 +116,14 @@ int main(int argc, char **argv) {
 
     move_group.stop();
     move_group.clearPoseTargets();
+
+    ros::Rate r(25);
+
+    while (ros::ok()) {
+        marker_pub.publish(marker);
+        ROS_INFO("Publishing marker...");
+        r.sleep();
+    }
 
     ros::shutdown();
     return 0;

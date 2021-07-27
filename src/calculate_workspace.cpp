@@ -62,7 +62,6 @@ void shutdownNode(int sig) {
     ROS_INFO_STREAM("Shutting down node with signal " << sig << ". Will save current calculation.");
     saveROSBag(false);
     std::exit(25);
-    //ros::shutdown(); //TODO with shutdown it would insert one more point with unsuccessfull moveit result and add it to the bag after it is closed?
 }
 
 /**

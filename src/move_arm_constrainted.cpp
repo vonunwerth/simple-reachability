@@ -50,8 +50,6 @@ int main(int argc, char **argv) {
     geometry_msgs::Pose initial_pose;
     initial_pose.orientation.w = 0.707;
     initial_pose.orientation.x = -0.707;
-    initial_pose.orientation.y = 0;
-    initial_pose.orientation.z = 0;
     initial_pose.position.x = p2.position.x - p.position.x;//move_group.getCurrentPose().pose.position.x;
     initial_pose.position.y = p2.position.y - p.position.y;//move_group.getCurrentPose().pose.position.y;
     initial_pose.position.z = p2.position.z - p.position.z;//move_group.getCurrentPose().pose.position.z;
@@ -62,7 +60,7 @@ int main(int argc, char **argv) {
     target_pose.orientation.y = 0;
     target_pose.orientation.z = 0;
     target_pose.position.x = 0.75;//move_group.getCurrentPose().pose.position.x;
-    target_pose.position.y = -0.30;//move_group.getCurrentPose().pose.position.y;
+    target_pose.position.y = 0;//move_group.getCurrentPose().pose.position.y;
     target_pose.position.z = -0.35;//move_group.getCurrentPose().pose.position.z;
 
     std::vector<geometry_msgs::Pose> waypoints = {initial_pose, target_pose};
@@ -88,7 +86,7 @@ int main(int argc, char **argv) {
     if (fraction == 1)
         move_group.execute(trajectory);
     else
-        ROS_FATAL("Cant move to initial pose. Only %f percent of the path can be executed.", (fraction * 100));
+        ROS_FATAL("Cant move to target pose. Only %f percent of the path can be executed.", (fraction * 100));
 
     ROS_INFO_STREAM("Moved to initial pose");
     /*geometry_msgs::Pose start_pose = move_group.getCurrentPose().pose;

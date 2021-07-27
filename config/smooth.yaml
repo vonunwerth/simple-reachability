@@ -19,8 +19,8 @@ orientation_tolerance: 0.01 #orientation tolerance, to calculate the reachable w
 #x_max: 0.2
 #y_min: -0.1
 #y_max: 0.1
-z_min: -0.45
-z_max: -0.45
+z_min: -0.35
+z_max: -0.35
 complete_region: false # Optional (use only with region parameters) Complete region defined by x,z,z ranges (true) or just the region inside the manipulator_reach sphere (false)
 
 # Define a pose where to starttrying to reach all given positions without changing the end-effector orientation

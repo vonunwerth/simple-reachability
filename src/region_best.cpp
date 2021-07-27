@@ -5,8 +5,10 @@
 #include "simple_reachability/CLCORegion.h"
 #include "simple_reachability/CLCOResult.h"
 #include "Region.cpp"
+#include "utils.cpp"
 
 std::vector<Region> master_regions;
+
 
 int region_with_initial_pose(geometry_msgs::Pose pose, const std::vector<Region> &region_list) {
     for (const Region &r : region_list) {
@@ -29,11 +31,12 @@ void paths(const geometry_msgs::Pose &p, std::vector<Region> region_list, Region
         if (region_number > 0) {
             if (region_list[region_number].contains(goal)) {
                 p_to_all_count++;
+            } else {
+                ROS_WARN("Goal not found: %d does not contain %f|%f|%f", region_number, goal.position.x, goal.position.y, goal.position.z);
             }
         }
     }
-    bool p_to_all = false;
-    if (p_to_all_count == master_region.reachable_poses.size()) p_to_all = true;
+    bool p_to_all = (p_to_all_count == master_region.reachable_poses.size());
 
     int all_to_p_count = 0;
     for (const geometry_msgs::Pose &start : master_region.reachable_poses) {
@@ -41,6 +44,8 @@ void paths(const geometry_msgs::Pose &p, std::vector<Region> region_list, Region
         if (region_number > 0) {
             if (region_list[region_with_initial_pose(start, region_list)].contains(p)) {
                 all_to_p_count++;
+            } else {
+                ROS_WARN("P not found: %d does not contain %f|%f|%f", region_number, start.position.x, start.position.y, start.position.z);
             }
         }
     }
@@ -59,7 +64,7 @@ int main(int argc, char **argv) {
 
     rosbag::Bag bag;
     std::string path = ros::package::getPath("simple_reachability");
-    std::string file_name = "clco_0_05.bag";
+    std::string file_name = "clco035.bag"; // TODO als param
     bag.open(path + "/bags/" + file_name);  // BagMode is Read by default
 
     std::vector<Region> region_list;
@@ -84,7 +89,11 @@ int main(int argc, char **argv) {
     BLACK.b = 0;
     BLACK.a = 1.0;
 
-    for (const Region &region : region_list) {
+    std::vector<Region> region_list_debug;//TODO DEBUG
+    region_list_debug.push_back(region_list[346]);
+
+
+    for (const Region &region : region_list_debug) { //TODO DEBUG
         ROS_INFO("Calculating master region %d", region.id);
         Region master_region;
         master_region.id = region.id;
@@ -99,7 +108,7 @@ int main(int argc, char **argv) {
 
 
     std::vector<Region> cutted_region_list;
-    float y_max = -0.40;
+    float y_max = 999999990.40; //-0.40 TODO as param
     for (const Region &region : master_regions) {
         if (region.initial_pose.position.y <= y_max) {
             std::vector<geometry_msgs::Pose> new_re_poses;
@@ -127,53 +136,10 @@ int main(int argc, char **argv) {
             master_id = mr.id;
         }
     }
+
     ROS_INFO("Max Master Region %d holds %zu reachable poses", master_regions[master_id].id,
              master_regions[master_id].reachable_poses.size());
 
-    for (int i = 0; i < cutted_region_list.size(); i++) {
-        visualization_msgs::Marker marker;
-        visualization_msgs::Marker marker_initial_poses;
-        marker.header.frame_id = "ur10_base_link";
-        marker_initial_poses.header.frame_id = "ur10_base_link";
-        marker.header.stamp = ros::Time(0);
-        marker_initial_poses.header.stamp = ros::Time(0);
-        marker.ns = "points";
-        marker_initial_poses.ns = "points";
-        marker.action = visualization_msgs::Marker::ADD;
-        marker_initial_poses.action = visualization_msgs::Marker::ADD;
-        marker.id = 0;
-        marker_initial_poses.id = 1;
-        marker.type = visualization_msgs::Marker::POINTS;
-        marker_initial_poses.type = visualization_msgs::Marker::SPHERE_LIST;
-        marker.scale.x = 0.05; //TODO depending on resolution
-        marker.scale.y = 0.05;
-        marker_initial_poses.scale.x = 0.05;
-        marker_initial_poses.scale.y = 0.05;
-        marker_initial_poses.scale.z = 0.05;
-        ROS_INFO("Writing bag for Region %d with %zu poses.", cutted_region_list[i].id,
-                 cutted_region_list[i].reachable_poses.size());
-        //Save results in markers
-        std_msgs::ColorRGBA color;
-        color.r = rand() % 255;
-        color.g = rand() % 255;
-        color.b = rand() % 255;
-        color.a = 1;
-        for (geometry_msgs::Pose p : cutted_region_list[i].reachable_poses) {
-            marker.points.push_back(p.position);
-            marker.colors.push_back(color);
-        }
-        marker.points.push_back(cutted_region_list[i].initial_pose.position);
-        marker.colors.push_back(BLACK);
+    saveIndividualBagFiles(cutted_region_list, path + "/bags/masters/");
 
-        ROS_INFO("Finished.");
-        bag.close();
-
-        rosbag::Bag saveBag;
-        std::string filename = "master_region_visualizer" + std::to_string(cutted_region_list[i].id) + ".bag";
-        saveBag.open(path + "/bags/masters/" + filename,
-                     rosbag::bagmode::Write); // Save bag in the bags folder of the package
-        saveBag.write("/visualization_marker", ros::Time::now(), marker);
-        saveBag.close();
-
-    }
 }

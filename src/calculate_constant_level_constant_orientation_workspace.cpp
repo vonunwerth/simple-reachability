@@ -64,7 +64,6 @@ void shutdownNode(int sig) {
     ROS_INFO_STREAM("Shutting down node with signal " << sig << ". Will save current calculation.");
     saveROSBag(false);
     std::exit(25);
-    //ros::shutdown(); //TODO with shutdown it would insert one more point with unsuccessfull moveit result and add it to the bag after it is closed?
 }
 
 /**
@@ -108,14 +107,17 @@ int main(int argc, char **argv) {
     bool calculate_full = !(node_handle.hasParam("x_min") or node_handle.hasParam("x_max") or
                             node_handle.hasParam("y_min") or node_handle.hasParam("y_max") or
                             node_handle.hasParam("z_min") or node_handle.hasParam("z_max"));
-    calculate_full = false;//TODO Debug
     double x_min, x_max, y_min, y_max, z_min, z_max;
     node_handle.param<double>("x_min", x_min, -radius);
     node_handle.param<double>("x_max", x_max, radius);
-    node_handle.param<double>("y_min", y_min, -radius); //TODO fix all default values in the end
+    node_handle.param<double>("y_min", y_min, -radius);
     node_handle.param<double>("y_max", y_max, radius);
-    node_handle.param<double>("z_min", z_min, -radius); //TODO check if max param is more than min
+    node_handle.param<double>("z_min", z_min, -radius);
     node_handle.param<double>("z_max", z_max, radius);
+
+    if ((x_min > x_max) or (y_min > y_max) or (z_min > z_max)) {
+        ROS_ERROR_STREAM("The minimum values must be lower/equal than the max values for a region");
+    }
 
     double initial_x, initial_y, initial_z;
     node_handle.param<double>("initial_x", initial_x, 0);
