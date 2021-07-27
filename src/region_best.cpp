@@ -140,6 +140,6 @@ int main(int argc, char **argv) {
     ROS_INFO("Max Master Region %d holds %zu reachable poses", master_regions[master_id].id,
              master_regions[master_id].reachable_poses.size());
 
-    saveIndividualBagFiles(cutted_region_list, path + "/bags/masters/");
+    saveIndividualBagFiles(cutted_region_list, path + "/bags/masters/", 0.05); //TODO res as param
 
 }

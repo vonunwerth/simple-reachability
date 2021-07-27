@@ -182,11 +182,13 @@ int main(int argc, char **argv) {
     std::vector<geometry_msgs::Pose> region_poses; //Count "green" points for each initial pose
     std::vector<int> region_counts;
 
+    int region_id = 0;
     for (geometry_msgs::Pose initial_pose : initial_poses) {
         simple_reachability::CLCORegion r;
+        r.id = region_id;
+        region_id++;
         int result_count = 0;
         r.initial_pose = initial_pose;
-        r.count = 0;
         move_group.setPoseTarget(initial_pose);
         bool success = (move_group.plan(my_plan) ==
                         moveit::planning_interface::MoveItErrorCode::SUCCESS); // Plans a motion to a target_pose, Hint: Choose your IK Plugin in the moveit_config - IKFast could be really useful here
@@ -213,7 +215,6 @@ int main(int argc, char **argv) {
                     ROS_INFO("Plan found for Pose: %f %f %f", target_pose.position.x, target_pose.position.y,
                              target_pose.position.z);
                     result_count++;
-                    r.count++;
                     r.reachable_poses.push_back(target_pose);
 
                 } else {
@@ -252,7 +253,7 @@ int main(int argc, char **argv) {
     bag.close();
 
     path = path + "/bags/clco/singles/";
-    saveIndividualBagFiles(result.regions, path);
+    saveIndividualBagFiles(result.regions, path, resolution);
 
     ros::shutdown();
     return 0;

@@ -1,18 +1,18 @@
-#include <simple_reachability/CLCORegion.h>
 #include <vector>
 #include <std_msgs/ColorRGBA.h>
 #include <visualization_msgs/Marker.h>
 #include <ros/ros.h>
 #include <rosbag/bag.h>
+#include "simple_reachability/CLCORegion.h"
 #include "Region.cpp"
 
 /**
- * Saves a bag for each individual region in a region list
- * @param regions Region list
- * @param path Path to save the bags
+ * Converts Regions to CLCORegions and calls the proper method
+ * @param regions Regionlist
+ * @param path Path to save the individual bags
  */
-void saveIndividualBagFiles(const std::vector<simple_reachability::CLCORegion> regions, const std::string &path) {
-    // Writing the individual regions as bag files for easy visualization
+void saveIndividualBagFiles(const std::vector<Region> &regions, const std::string &path, double resolution) {
+// Writing the individual regions as bag files for easy visualization
     int counter = 0;
     std_msgs::ColorRGBA BLACK;
     BLACK.r = 0;
@@ -20,7 +20,7 @@ void saveIndividualBagFiles(const std::vector<simple_reachability::CLCORegion> r
     BLACK.b = 0;
     BLACK.a = 1.0;
 
-    for (const simple_reachability::CLCORegion &region : regions) {
+    for (const Region& region : regions) {
         visualization_msgs::Marker marker;
         visualization_msgs::Marker marker_initial_poses;
         marker.header.frame_id = "ur10_base_link";
@@ -35,11 +35,11 @@ void saveIndividualBagFiles(const std::vector<simple_reachability::CLCORegion> r
         marker_initial_poses.id = 1;
         marker.type = visualization_msgs::Marker::POINTS;
         marker_initial_poses.type = visualization_msgs::Marker::SPHERE_LIST;
-        marker.scale.x = 0.05; //TODO depending on resolution
-        marker.scale.y = 0.05;
-        marker_initial_poses.scale.x = 0.05;
-        marker_initial_poses.scale.y = 0.05;
-        marker_initial_poses.scale.z = 0.05;
+        marker.scale.x = resolution; //TODO depending on resolution
+        marker.scale.y = resolution;
+        marker_initial_poses.scale.x = resolution;
+        marker_initial_poses.scale.y = resolution;
+        marker_initial_poses.scale.z = resolution;
         ROS_INFO("Writing bag for Region %d with %zu poses.", counter,
                  region.reachable_poses.size());
         //Save results in markers
@@ -67,19 +67,23 @@ void saveIndividualBagFiles(const std::vector<simple_reachability::CLCORegion> r
     }
 }
 
-/**
- * Converts Regions to CLCORegions and calls the proper method
- * @param regions Regionlist
- * @param path Path to save the individual bags
- */
 void saveIndividualBagFiles(const std::vector<Region> &regions, const std::string &path) {
-    std::vector<simple_reachability::CLCORegion> clco_regions;
-    for (Region r : regions) {
-        simple_reachability::CLCORegion clco_r;
-        clco_r.reachable_poses = r.reachable_poses;
-        clco_r.initial_pose = r.initial_pose;
-        clco_r.count = r.reachable_poses.size();
-        clco_regions.push_back(clco_r);
-    }
-    saveIndividualBagFiles(clco_regions, path);
+    saveIndividualBagFiles(regions, path, 0.05);
 }
+
+void saveIndividualBagFiles(const std::vector<simple_reachability::CLCORegion> &regions, const std::string &path, double resolution) {
+    std::vector<Region> new_regions;
+    for (const simple_reachability::CLCORegion& region: regions) {
+        Region r;
+        r.reachable_poses = region.reachable_poses;
+        r.initial_pose = region.initial_pose;
+        r.id = region.id;
+        new_regions.push_back(r);
+    }
+    saveIndividualBagFiles(new_regions, path, resolution);
+}
+
+void saveIndividualBagFiles(const std::vector<simple_reachability::CLCORegion> &regions, const std::string &path) {
+    saveIndividualBagFiles(regions, path, 0.05);
+}
+
