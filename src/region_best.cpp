@@ -4,7 +4,6 @@
 #include <visualization_msgs/Marker.h>
 #include "simple_reachability/CLCORegion.h"
 #include "simple_reachability/CLCOResult.h"
-#include "Region.cpp"
 #include "utils.cpp"
 
 std::vector<Region> master_regions;

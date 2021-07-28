@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
 
     std::string filename = "clco.bag";
     std::string path = ros::package::getPath("simple_reachability");
-    bag.open(path + "/bags/clco" + filename, rosbag::bagmode::Write); // Save bag in the bags folder of the package
+    bag.open(path + "/bags/clco/" + filename, rosbag::bagmode::Write); // Save bag in the bags folder of the package
     bag.write("/clco_results", ros::Time::now(), result);
     bag.close();
 
