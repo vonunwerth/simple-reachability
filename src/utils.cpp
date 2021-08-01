@@ -87,9 +87,6 @@ move_arm_constrained(const ros::NodeHandle &node_handle, moveit::planning_interf
         if (move) {
             move_group.execute(trajectory);
             ROS_INFO("Moved constrained to pose %f|%f|%f", x, y, z);
-            for (int i = 0; i < 6; i++) { // Show actual joint states
-                ROS_INFO("Joint %d : %f", i, move_group.getCurrentJointValues()[i]);
-            }
             move_group.stop();
             move_group.clearPoseTargets();
             return true;
@@ -98,7 +95,7 @@ move_arm_constrained(const ros::NodeHandle &node_handle, moveit::planning_interf
             return true;
         }
     } else {
-        ROS_FATAL("Cant move to target pose %f|%f|%f. Only %f percent of the path can be executed.", x, y, z,
+        ROS_WARN("Cant move to target pose %f|%f|%f. Only %f percent of the path can be executed.", x, y, z,
                   (fraction * 100));
         return false;
     }
@@ -161,11 +158,21 @@ bool move_arm(const ros::NodeHandle &node_handle, moveit::planning_interface::Mo
     return move_arm(node_handle, move_group, p.position.x, p.position.y, p.position.z); //TODO orientation
 }
 
-bool
-move_arm_constrained(const ros::NodeHandle &node_handle, moveit::planning_interface::MoveGroupInterface &move_group,
+bool move_arm_constrained(const ros::NodeHandle &node_handle, moveit::planning_interface::MoveGroupInterface &move_group,
                      geometry_msgs::Pose p) {
     return move_arm_constrained(node_handle, move_group, p.position.x, p.position.y, p.position.z);
 }
+
+bool move_arm(const ros::NodeHandle &node_handle, moveit::planning_interface::MoveGroupInterface &move_group,
+              geometry_msgs::Pose p, bool move) {
+    return move_arm(node_handle, move_group, p.position.x, p.position.y, p.position.z, move); //TODO orientation
+}
+
+bool move_arm_constrained(const ros::NodeHandle &node_handle, moveit::planning_interface::MoveGroupInterface &move_group,
+                          geometry_msgs::Pose p, bool move) {
+    return move_arm_constrained(node_handle, move_group, p.position.x, p.position.y, p.position.z, move);
+}
+
 
 /**
  * Converts Regions to CLCORegions and calls the proper method

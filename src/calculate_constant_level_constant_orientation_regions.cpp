@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
 
         for (geometry_msgs::Pose target_pose : target_poses) {
             if (ros::ok()) {
-                if (move_arm_constrained(node_handle, move_group, target_pose)) { //TODO ggf. hier mit mehr Farben arbeiten
+                if (move_arm_constrained(node_handle, move_group, target_pose, false)) { //TODO ggf. hier mit mehr Farben arbeiten
                     result_count++;
                     r.reachable_poses.push_back(target_pose);
                 }
