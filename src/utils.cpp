@@ -8,6 +8,118 @@
 #include "Region.cpp"
 #include <rosbag/view.h>
 
+#include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <moveit_msgs/CollisionObject.h>
+#include <moveit_visual_tools/moveit_visual_tools.h>
+#include <moveit/kinematics_metrics/kinematics_metrics.h>
+#include <rosbag/bag.h>
+#include <cstdio>
+
+
+bool move_arm_constrained(ros::NodeHandle node_handle, double x, double y, double z) {
+    std::string planning_group = "manipulator";
+    std::string base_link = "ur10_base_link";
+    moveit::planning_interface::MoveGroupInterface move_group(planning_group);
+    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+    robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+    const robot_model::RobotModelPtr &kinematic_model = robot_model_loader.getModel();
+    ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
+    robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
+    moveit::core::RobotState robot_state(robot_model_loader.getModel());
+    kinematic_state->setToDefaultValues();
+    move_group.setPoseReferenceFrame(base_link);
+    moveit::planning_interface::MoveGroupInterface::Plan my_plan;
+    move_group.setGoalOrientationTolerance(0.001); // Set an orienation tolerance
+
+    geometry_msgs::Pose p2 = move_group.getCurrentPose().pose;
+    geometry_msgs::Pose p = move_group.getCurrentPose("ur10_base_link").pose;
+    geometry_msgs::Pose initial_pose;
+    initial_pose.orientation.w = 0.707;
+    initial_pose.orientation.x = -0.707;
+    initial_pose.position.x = p2.position.x - p.position.x;
+    initial_pose.position.y = p2.position.y - p.position.y;
+    initial_pose.position.z = p2.position.z - p.position.z;
+
+    geometry_msgs::Pose target_pose;
+    target_pose.orientation.w = 0.707;
+    target_pose.orientation.x = -0.707;
+    target_pose.orientation.y = 0;
+    target_pose.orientation.z = 0;
+    target_pose.position.x = x;
+    target_pose.position.y = y;
+    target_pose.position.z = z;
+
+    std::vector<geometry_msgs::Pose> waypoints = {initial_pose, target_pose};
+    moveit_msgs::RobotTrajectory trajectory;
+    const double jump_threshold = 2.0;
+    const double eef_step = 0.01;
+    double fraction = move_group.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
+
+    ROS_INFO("Moving to pose %f|%f|%f", x, y, z);
+    if (fraction == 1) {
+        move_group.execute(trajectory);
+        ROS_INFO("Moved constrained to pose %f|%f|%f", x, y, z);
+        for (int i = 0; i < 6; i++) { // Show actual joint states
+            ROS_INFO("Joint %d : %f", i, move_group.getCurrentJointValues()[i]);
+        }
+        move_group.stop();
+        move_group.clearPoseTargets();
+        return true;
+    }
+    else {
+        ROS_FATAL("Cant move to target pose %f|%f|%f. Only %f percent of the path can be executed.", x,y,z,(fraction * 100));
+        return false;
+    }
+}
+
+
+bool move_arm(ros::NodeHandle node_handle, double x, double y, double z) {
+    std::string planning_group = "manipulator"; //TODO as param
+    std::string base_link = "ur10_base_link";
+    moveit::planning_interface::MoveGroupInterface move_group(planning_group);
+    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+    robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+    const robot_model::RobotModelPtr &kinematic_model = robot_model_loader.getModel();
+    ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
+    robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
+    moveit::core::RobotState robot_state(robot_model_loader.getModel());
+    kinematic_state->setToDefaultValues();
+    move_group.setPoseReferenceFrame(base_link);
+    moveit::planning_interface::MoveGroupInterface::Plan my_plan;
+
+    move_group.setGoalOrientationTolerance(0.001); // Set an orienation tolerance
+    geometry_msgs::Pose initial_pose;
+    initial_pose.orientation.w = 0.707; //TODO this movegroup, ... as param
+    initial_pose.orientation.x = -0.707;
+    initial_pose.orientation.y = 0;
+    initial_pose.orientation.z = 0;
+    initial_pose.position.x = x;
+    initial_pose.position.y = y;
+    initial_pose.position.z = z;
+    move_group.setPoseTarget(initial_pose);
+
+    geometry_msgs::Pose p2 = move_group.getCurrentPose().pose;
+    geometry_msgs::Pose p = move_group.getCurrentPose("ur10_base_link").pose;
+
+    ROS_INFO_STREAM("Moving to initial pose");
+    bool success = (move_group.plan(my_plan) ==
+                    moveit::planning_interface::MoveItErrorCode::SUCCESS); // Plans a motion to a target_pose, Hint: Choose your IK Plugin in the moveit_config - IKFast could be really useful here
+    if (success) {
+        move_group.move();
+        move_group.stop();
+        move_group.clearPoseTargets();
+        ROS_INFO("Moved to pose %f|%f|%f", x, y, z);
+        for (int i = 0; i < 6; i++) {
+            ROS_INFO("Joint %d : %f", i, move_group.getCurrentJointValues()[i]);
+        }
+        return true;
+    } else {
+        ROS_FATAL("Cant move to pose %f|%f|%f", x, y, z);
+        return false;
+    }
+}
+
 /**
  * Converts Regions to CLCORegions and calls the proper method
  * @param regions Regionlist
@@ -22,7 +134,7 @@ void saveIndividualBagFiles(const std::vector<Region> &regions, const std::strin
     BLACK.b = 0;
     BLACK.a = 1.0;
 
-    for (const Region& region : regions) {
+    for (const Region &region : regions) {
         visualization_msgs::Marker marker;
         visualization_msgs::Marker marker_initial_poses;
         marker.header.frame_id = "ur10_base_link";
@@ -60,7 +172,8 @@ void saveIndividualBagFiles(const std::vector<Region> &regions, const std::strin
         ROS_INFO("Finished.");
 
         rosbag::Bag saveBag;
-        std::string filename = "master_region_visualizer" + std::to_string(counter) + ".bag"; //TODO increase counter?!!!!!!!!!!!! Hier weiter 27.07.2021 20:52
+        std::string filename = "master_region_visualizer" + std::to_string(counter) +
+                               ".bag"; //TODO increase counter?!!!!!!!!!!!! Hier weiter 27.07.2021 20:52
         saveBag.open(path + filename,
                      rosbag::bagmode::Write); // Save bag in the bags folder of the package
         saveBag.write("/visualization_marker", ros::Time::now(), marker);
@@ -74,9 +187,10 @@ void saveIndividualBagFiles(const std::vector<Region> &regions, const std::strin
     saveIndividualBagFiles(regions, path, 0.05);
 }
 
-void saveIndividualBagFiles(const std::vector<simple_reachability::CLCORegion> &regions, const std::string &path, double resolution) {
+void saveIndividualBagFiles(const std::vector<simple_reachability::CLCORegion> &regions, const std::string &path,
+                            double resolution) {
     std::vector<Region> new_regions;
-    for (const simple_reachability::CLCORegion& region: regions) {
+    for (const simple_reachability::CLCORegion &region: regions) {
         Region r;
         r.reachable_poses = region.reachable_poses;
         r.initial_pose = region.initial_pose;

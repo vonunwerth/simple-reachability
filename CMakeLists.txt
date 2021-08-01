@@ -165,11 +165,10 @@ add_executable(calculate_workspace src/calculate_workspace.cpp)
 add_executable(visualize_workspace src/visualize_workspace.cpp)
 add_executable(calculate_constant_level_constant_orientation_workspace src/calculate_constant_level_constant_orientation_workspace.cpp)
 add_executable(calculate_constant_level_constant_orientation_regions src/calculate_constant_level_constant_orientation_regions.cpp)
-add_executable(move_arm src/move_arm.cpp)
+add_executable(move_arm_example src/move_arm_example.cpp)
 add_executable(region_analyzer src/bag_tools.cpp)
 add_executable(region_visualizer src/region_visualizer.cpp)
 add_executable(region_best src/region_best.cpp)
-add_executable(move_arm_constrainted src/move_arm_constrainted.cpp)
 add_executable(bag_tools src/bag_tools.cpp)
 add_executable(helpers src/helpers.cpp)
 add_executable(calculate_constant_level_constant_orientation_regions_from_initial src/calculate_constant_level_constant_orientation_regions_from_initial.cpp)
@@ -206,7 +205,7 @@ target_link_libraries(
 )
 
 target_link_libraries(
-        move_arm
+        move_arm_example
         ${catkin_LIBRARIES}
 )
 
@@ -222,11 +221,6 @@ target_link_libraries(
 
 target_link_libraries(
         region_best
-        ${catkin_LIBRARIES}
-)
-
-target_link_libraries(
-        move_arm_constrainted
         ${catkin_LIBRARIES}
 )
 
