@@ -16,8 +16,16 @@
 #include <rosbag/bag.h>
 #include <cstdio>
 
-
-bool move_arm_constrained(ros::NodeHandle node_handle, double x, double y, double z) {
+/**
+ * Move arm constrained
+ * @param node_handle  ROS Node handle
+ * @param x x
+ * @param y x
+ * @param z z
+ * @param move Move or just plan
+ * @return Motion possible
+ */
+bool move_arm_constrained(const ros::NodeHandle& node_handle, double x, double y, double z, bool move) {
     std::string planning_group = "manipulator";
     std::string base_link = "ur10_base_link";
     moveit::planning_interface::MoveGroupInterface move_group(planning_group);
@@ -58,23 +66,28 @@ bool move_arm_constrained(ros::NodeHandle node_handle, double x, double y, doubl
 
     ROS_INFO("Moving to pose %f|%f|%f", x, y, z);
     if (fraction == 1) {
-        move_group.execute(trajectory);
-        ROS_INFO("Moved constrained to pose %f|%f|%f", x, y, z);
-        for (int i = 0; i < 6; i++) { // Show actual joint states
-            ROS_INFO("Joint %d : %f", i, move_group.getCurrentJointValues()[i]);
+        if (move) {
+            move_group.execute(trajectory);
+            ROS_INFO("Moved constrained to pose %f|%f|%f", x, y, z);
+            for (int i = 0; i < 6; i++) { // Show actual joint states
+                ROS_INFO("Joint %d : %f", i, move_group.getCurrentJointValues()[i]);
+            }
+            move_group.stop();
+            move_group.clearPoseTargets();
+            return true;
+        } else {
+            ROS_INFO("Motion possible");
+            return true;
         }
-        move_group.stop();
-        move_group.clearPoseTargets();
-        return true;
-    }
-    else {
-        ROS_FATAL("Cant move to target pose %f|%f|%f. Only %f percent of the path can be executed.", x,y,z,(fraction * 100));
+    } else {
+        ROS_FATAL("Cant move to target pose %f|%f|%f. Only %f percent of the path can be executed.", x, y, z,
+                  (fraction * 100));
         return false;
     }
 }
 
 
-bool move_arm(ros::NodeHandle node_handle, double x, double y, double z) {
+bool move_arm(const ros::NodeHandle& node_handle, double x, double y, double z, bool move) {
     std::string planning_group = "manipulator"; //TODO as param
     std::string base_link = "ur10_base_link";
     moveit::planning_interface::MoveGroupInterface move_group(planning_group);
@@ -106,18 +119,31 @@ bool move_arm(ros::NodeHandle node_handle, double x, double y, double z) {
     bool success = (move_group.plan(my_plan) ==
                     moveit::planning_interface::MoveItErrorCode::SUCCESS); // Plans a motion to a target_pose, Hint: Choose your IK Plugin in the moveit_config - IKFast could be really useful here
     if (success) {
-        move_group.move();
-        move_group.stop();
-        move_group.clearPoseTargets();
-        ROS_INFO("Moved to pose %f|%f|%f", x, y, z);
-        for (int i = 0; i < 6; i++) {
-            ROS_INFO("Joint %d : %f", i, move_group.getCurrentJointValues()[i]);
+        if (move) {
+            move_group.move();
+            move_group.stop();
+            move_group.clearPoseTargets();
+            ROS_INFO("Moved to pose %f|%f|%f", x, y, z);
+            for (int i = 0; i < 6; i++) {
+                ROS_INFO("Joint %d : %f", i, move_group.getCurrentJointValues()[i]);
+            }
+            return true;
+        } else {
+            ROS_INFO("Motion possible");
+            return true;
         }
-        return true;
     } else {
         ROS_FATAL("Cant move to pose %f|%f|%f", x, y, z);
         return false;
     }
+}
+
+bool move_arm(const ros::NodeHandle& node_handle, double x, double y, double z) {
+    move_arm(node_handle, x, y, z, true);
+}
+
+bool move_arm_constrained(const ros::NodeHandle& node_handle, double x, double y, double z) {
+    move_arm_constrained(node_handle, x, y, z, true);
 }
 
 /**
