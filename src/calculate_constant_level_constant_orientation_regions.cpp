@@ -22,8 +22,6 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "calculate_constant_level_constant_orientation_regions");
     ros::NodeHandle node_handle("~"); // Allow access to private ROS parameters
 
-    ROS_INFO("%s", "Calculating regions");
-
     // Load the planning group parameter from the configuration
     std::string planning_group;
     if (node_handle.getParam("planning_group", planning_group)) ROS_INFO_STREAM("Planning group: " << planning_group);
@@ -36,6 +34,23 @@ int main(int argc, char **argv) {
     // Load the base_link parameter from the configuration
     std::string base_link;
     node_handle.param<std::string>("manipulator_base_link", base_link, "ur10_base_link");
+
+    //Initializing robot arm configuration
+    moveit::planning_interface::MoveGroupInterface move_group(planning_group);
+    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+
+    robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+    const robot_model::RobotModelPtr &kinematic_model = robot_model_loader.getModel();
+    ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
+    robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
+    moveit::core::RobotState robot_state(robot_model_loader.getModel());
+
+    kinematic_state->setToDefaultValues();
+    move_group.setGoalOrientationTolerance(0.001); // Set an orienation tolerance
+    //Set reference frame for planning to the ur base link
+    move_group.setPoseReferenceFrame(base_link);
+
+    ROS_INFO("%s", "Calculating regions");
 
     // Load the resolution parameter from the configuration
     double resolution; // Resolution in meter
@@ -98,22 +113,6 @@ int main(int argc, char **argv) {
 
     ros::AsyncSpinner spinner(12);
     spinner.start();
-    moveit::planning_interface::MoveGroupInterface move_group(planning_group);
-    //TODO move_group.setEndEffector() ?
-    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-
-    robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
-    const robot_model::RobotModelPtr &kinematic_model = robot_model_loader.getModel();
-    ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
-    robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
-    moveit::core::RobotState robot_state(robot_model_loader.getModel());
-    const moveit::core::JointModelGroup *joint_model_group =
-            move_group.getCurrentState()->getJointModelGroup(planning_group);
-    kinematic_state->setToDefaultValues();
-
-    //Set reference frame for planning to the ur base link
-    move_group.setPoseReferenceFrame(
-            base_link);
 
     // Generate target poses, this also checks if a partial result already contains a pose
     ROS_INFO_STREAM(
@@ -126,6 +125,7 @@ int main(int argc, char **argv) {
 
     y_max = -0.4;//TODO DEBUG
 
+    //Calculate target poses
     ROS_INFO("min/max values %f, %f, %f, %f, %f, %f", x_min, y_min, z_min, x_max, y_max, z_max);
     for (double z = z_min; z <= z_max; z += resolution) { //TODO als Methode auslagern für inital und targets
         for (double x = x_min; x <= x_max; x += resolution) {
@@ -184,8 +184,6 @@ int main(int argc, char **argv) {
     ros::Time begin = ros::Time::now();
     ros::Duration elapsed = ros::Time::now() - begin;
 
-    moveit::planning_interface::MoveGroupInterface::Plan my_plan;
-
 
     simple_reachability::CLCOResult result;
     std::vector<geometry_msgs::Pose> region_poses; //Count "green" points for each initial pose
@@ -195,43 +193,15 @@ int main(int argc, char **argv) {
     for (geometry_msgs::Pose initial_pose : initial_poses) {
 
         //HOMING
-        moveit::core::RobotStatePtr current_state = move_group.getCurrentState();
-        std::vector<double> joint_group_positions;
-        current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
-        joint_group_positions[0] = 0;
-        joint_group_positions[1] = 0;
-        joint_group_positions[2] = 0;
-        joint_group_positions[3] = 0;
-        joint_group_positions[4] = 0;
-        joint_group_positions[5] = 0;
-        move_group.setJointValueTarget(joint_group_positions);
-        bool success = (move_group.plan(my_plan) ==
-                        moveit::planning_interface::MoveItErrorCode::SUCCESS);
-        if (success) {
-            move_group.move();
-            ROS_INFO("%s", "Reached home");
-        } else {
-            ROS_ERROR("%s", "Can't reach home");
-            ros::shutdown();
-            return 25;
-        }
+        homing(move_group, planning_group);
 
         simple_reachability::CLCORegion r;
         r.id = region_id;
         region_id++;
         int result_count = 0;
         r.initial_pose = initial_pose;
-        current_state = move_group.getCurrentState();
-        move_group.setPoseTarget(initial_pose);
-        success = (move_group.plan(my_plan) ==
-                   moveit::planning_interface::MoveItErrorCode::SUCCESS); // Plans a motion to a target_pose, Hint: Choose your IK Plugin in the moveit_config - IKFast could be really useful here
-        if (success) {
-            move_group.move();
-            ROS_INFO("Reached initial pose: %f|%f|%f", initial_pose.position.x, initial_pose.position.y,
-                     initial_pose.position.z);
-        } else {
-            ROS_ERROR("Can not go to initial pose: %f|%f|%f", initial_pose.position.x, initial_pose.position.y,
-                      initial_pose.position.z);
+
+        if (!move_arm(node_handle, move_group, initial_pose)) {
             ROS_WARN("Skipping %ld steps.", target_poses.size());
             step_counter += target_poses.size();
             ROS_INFO_STREAM("Completed " << step_counter << " of " << steps);
@@ -244,27 +214,11 @@ int main(int argc, char **argv) {
             continue; //Continue with next initial pose
         }
 
-        //ROS_INFO("%s", "Continue. PRESS Enter");
-        //std::string tmp;
-        //std::cin >> tmp;
-
         for (geometry_msgs::Pose target_pose : target_poses) {
             if (ros::ok()) {
-                std::vector<geometry_msgs::Pose> waypoints = {initial_pose, target_pose};
-                moveit_msgs::RobotTrajectory trajectory;
-                const double jump_threshold = 2.0;
-                const double eef_step = 0.01;
-                double fraction = move_group.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
-                ROS_ERROR_STREAM(fraction); //TODO ggf. Stellen, an denen Probleme auftreten schwarz markieren
-                if (fraction == 1.0) { //TODO ggf. hier mit mehr Farben arbeiten
-                    ROS_INFO("Plan found for Pose: %f %f %f", target_pose.position.x, target_pose.position.y,
-                             target_pose.position.z);
+                if (move_arm_constrained(node_handle, move_group, target_pose)) { //TODO ggf. hier mit mehr Farben arbeiten
                     result_count++;
                     r.reachable_poses.push_back(target_pose);
-
-                } else {
-                    ROS_WARN("No Plan found for Pose: %f %f %f", target_pose.position.x, target_pose.position.y,
-                             target_pose.position.z);
                 }
                 step_counter++;
                 ROS_INFO_STREAM("Completed " << step_counter << " of " << steps);

@@ -16,6 +16,34 @@
 #include <rosbag/bag.h>
 #include <cstdio>
 
+bool homing(moveit::planning_interface::MoveGroupInterface& move_group, std::string planning_group) {
+    moveit::core::RobotStatePtr current_state = move_group.getCurrentState();
+    std::vector<double> joint_group_positions;
+    const moveit::core::JointModelGroup *joint_model_group =
+            move_group.getCurrentState()->getJointModelGroup(planning_group);
+    moveit::planning_interface::MoveGroupInterface::Plan my_plan;
+    current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
+    joint_group_positions[0] = 0;
+    joint_group_positions[1] = 0;
+    joint_group_positions[2] = 0;
+    joint_group_positions[3] = 0;
+    joint_group_positions[4] = 0;
+    joint_group_positions[5] = 0;
+    move_group.setJointValueTarget(joint_group_positions);
+    bool success = (move_group.plan(my_plan) ==
+            moveit::planning_interface::MoveItErrorCode::SUCCESS);
+    if (success) {
+        move_group.move();
+        ROS_INFO("%s", "Reached home");
+        return true;
+    } else {
+        ROS_ERROR("%s", "Can't reach home");
+        ros::shutdown();
+        return false;
+    }
+}
+
+
 /**
  * Move arm constrained
  * @param node_handle  ROS Node handle
@@ -25,20 +53,7 @@
  * @param move Move or just plan
  * @return Motion possible
  */
-bool move_arm_constrained(const ros::NodeHandle& node_handle, double x, double y, double z, bool move) {
-    std::string planning_group = "manipulator";
-    std::string base_link = "ur10_base_link";
-    moveit::planning_interface::MoveGroupInterface move_group(planning_group);
-    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-    robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
-    const robot_model::RobotModelPtr &kinematic_model = robot_model_loader.getModel();
-    ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
-    robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
-    moveit::core::RobotState robot_state(robot_model_loader.getModel());
-    kinematic_state->setToDefaultValues();
-    move_group.setPoseReferenceFrame(base_link);
-    moveit::planning_interface::MoveGroupInterface::Plan my_plan;
-    move_group.setGoalOrientationTolerance(0.001); // Set an orienation tolerance
+bool move_arm_constrained(const ros::NodeHandle& node_handle, moveit::planning_interface::MoveGroupInterface& move_group, double x, double y, double z, bool move) {
 
     geometry_msgs::Pose p2 = move_group.getCurrentPose().pose;
     geometry_msgs::Pose p = move_group.getCurrentPose("ur10_base_link").pose;
@@ -87,21 +102,9 @@ bool move_arm_constrained(const ros::NodeHandle& node_handle, double x, double y
 }
 
 
-bool move_arm(const ros::NodeHandle& node_handle, double x, double y, double z, bool move) {
-    std::string planning_group = "manipulator"; //TODO as param
-    std::string base_link = "ur10_base_link";
-    moveit::planning_interface::MoveGroupInterface move_group(planning_group);
-    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-    robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
-    const robot_model::RobotModelPtr &kinematic_model = robot_model_loader.getModel();
-    ROS_INFO("Model frame: %s", kinematic_model->getModelFrame().c_str());
-    robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(kinematic_model));
-    moveit::core::RobotState robot_state(robot_model_loader.getModel());
-    kinematic_state->setToDefaultValues();
-    move_group.setPoseReferenceFrame(base_link);
+bool move_arm(const ros::NodeHandle& node_handle, moveit::planning_interface::MoveGroupInterface& move_group, double x, double y, double z, bool move) {
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 
-    move_group.setGoalOrientationTolerance(0.001); // Set an orienation tolerance
     geometry_msgs::Pose initial_pose;
     initial_pose.orientation.w = 0.707; //TODO this movegroup, ... as param
     initial_pose.orientation.x = -0.707;
@@ -138,12 +141,20 @@ bool move_arm(const ros::NodeHandle& node_handle, double x, double y, double z, 
     }
 }
 
-bool move_arm(const ros::NodeHandle& node_handle, double x, double y, double z) {
-    move_arm(node_handle, x, y, z, true);
+bool move_arm(const ros::NodeHandle& node_handle, moveit::planning_interface::MoveGroupInterface& move_group, double x, double y, double z) {
+    return move_arm(node_handle, move_group, x, y, z, true);
 }
 
-bool move_arm_constrained(const ros::NodeHandle& node_handle, double x, double y, double z) {
-    move_arm_constrained(node_handle, x, y, z, true);
+bool move_arm_constrained(const ros::NodeHandle& node_handle, moveit::planning_interface::MoveGroupInterface& move_group, double x, double y, double z) {
+    return move_arm_constrained(node_handle, move_group, x, y, z, true);
+}
+
+bool move_arm(const ros::NodeHandle& node_handle, moveit::planning_interface::MoveGroupInterface& move_group, geometry_msgs::Pose p) {
+    return move_arm(node_handle, move_group, p.position.x, p.position.y, p.position.z); //TODO orientation
+}
+
+bool move_arm_constrained(const ros::NodeHandle& node_handle, moveit::planning_interface::MoveGroupInterface& move_group, geometry_msgs::Pose p) {
+    return move_arm_constrained(node_handle, move_group, p.position.x, p.position.y, p.position.z);
 }
 
 /**
