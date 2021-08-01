@@ -172,6 +172,7 @@ add_executable(region_best src/region_best.cpp)
 add_executable(move_arm_constrainted src/move_arm_constrainted.cpp)
 add_executable(bag_tools src/bag_tools.cpp)
 add_executable(helpers src/helpers.cpp)
+add_executable(calculate_constant_level_constant_orientation_regions_from_initial src/calculate_constant_level_constant_orientation_regions_from_initial.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -238,6 +239,13 @@ target_link_libraries(
         helpers
         ${catkin_LIBRARIES}
 )
+
+target_link_libraries(
+        calculate_constant_level_constant_orientation_regions_from_initial
+        ${catkin_LIBRARIES}
+)
+
+
 
 
 #############

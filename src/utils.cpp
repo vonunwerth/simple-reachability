@@ -107,5 +107,6 @@ int extract_regions() {
     }
 
     saveIndividualBagFiles(region_list, path + "/bags/clco/singles/");
+    return 0;
 }
 

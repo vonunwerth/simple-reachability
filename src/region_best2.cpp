@@ -32,7 +32,7 @@ void paths(const geometry_msgs::Pose &p, std::vector<Region> region_list, Region
             if (region_list[region_number].contains(goal)) {
                 p_to_all_count++;
             } else {
-                //ROS_WARN("Goal not found: %d does not contain %f|%f|%f", region_number, goal.position.x, goal.position.y, goal.position.z);
+                ROS_WARN("Goal not found: %d does not contain %f|%f|%f", region_number, goal.position.x, goal.position.y, goal.position.z);
             }
         }
     }
@@ -45,7 +45,7 @@ void paths(const geometry_msgs::Pose &p, std::vector<Region> region_list, Region
             if (region_list[start_number].contains(p)) {
                 all_to_p_count++;
             } else {
-                //ROS_WARN("P not found: %d does not contain %f|%f|%f", start_number, p.position.x, p.position.y, p.position.z);
+                ROS_WARN("P not found: %d does not contain %f|%f|%f", start_number, p.position.x, p.position.y, p.position.z);
             }
         }
     }
@@ -57,7 +57,7 @@ void paths(const geometry_msgs::Pose &p, std::vector<Region> region_list, Region
         master_region.reachable_poses.push_back(p);
     }
     else {
-        //ROS_ERROR("Not valid: %f|%f|%f with id: %d", p.position.x, p.position.y, p.position.z, region_number);
+        ROS_ERROR("Not valid: %f|%f|%f with id: %d", p.position.x, p.position.y, p.position.z, region_number);
     }
 }
 
@@ -93,12 +93,12 @@ int main(int argc, char **argv) {
     BLACK.b = 0;
     BLACK.a = 1.0;
 
-    //std::vector<Region> region_list_debug;//TODO DEBUG
-    //region_list_debug.push_back(region_list[346]);
+    std::vector<Region> region_list_debug;//TODO DEBUG
+    region_list_debug.push_back(region_list[346]);
 
 
-    for (Region region : region_list) { //region_list_debug for one region only
-        ROS_INFO("Calculating master region %d of %zu", region.id, region_list.size() );
+    for (Region region : region_list_debug) { //TODO DEBUG
+        ROS_INFO("Calculating master region %d", region.id);
         Region master_region;
         master_region.id = region.id;
         master_region.initial_pose = region.initial_pose;

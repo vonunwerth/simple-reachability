@@ -7,7 +7,7 @@
 #include <rosbag/bag.h>
 #include <cstdio>
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv) { //TODO move arm and move arm constrained as method
     ros::init(argc, argv, "calculate_constant_level_constant_orientation_workspace");
     ros::NodeHandle node_handle("~"); // Allow access to private ROS parameters
 
@@ -50,8 +50,8 @@ int main(int argc, char **argv) {
     initial_pose.orientation.x = -0.707;
     initial_pose.orientation.y = 0;
     initial_pose.orientation.z = 0;
-    initial_pose.position.x = 0.75;//move_group.getCurrentPose().pose.position.x;
-    initial_pose.position.y = 0.0;//move_group.getCurrentPose().pose.position.y;
+    initial_pose.position.x = 0.4;//move_group.getCurrentPose().pose.position.x;
+    initial_pose.position.y = -0.8;//move_group.getCurrentPose().pose.position.y;
     initial_pose.position.z = -0.35;//move_group.getCurrentPose().pose.position.z;
     move_group.setPoseTarget(initial_pose);
 
@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
 
     while (ros::ok()) {
         marker_pub.publish(marker);
-        ROS_INFO("Publishing marker...");
+        //ROS_INFO("Publishing marker...");
         r.sleep();
     }
 

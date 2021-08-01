@@ -194,44 +194,44 @@ int main(int argc, char **argv) {
     int region_id = 0;
     for (geometry_msgs::Pose initial_pose : initial_poses) {
 
-        //HOMING
-        moveit::core::RobotStatePtr current_state = move_group.getCurrentState();
-        std::vector<double> joint_group_positions;
-        current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
-        joint_group_positions[0] = 0;
-        joint_group_positions[1] = 0;
-        joint_group_positions[2] = 0;
-        joint_group_positions[3] = 0;
-        joint_group_positions[4] = 0;
-        joint_group_positions[5] = 0;
-        move_group.setJointValueTarget(joint_group_positions);
+        //HOMING to special pose
+        geometry_msgs::Pose home;
+        home.position.x = 0.4;
+        home.position.y = -0.8;
+        home.position.z = -0.35;
+        home.orientation.x = 0.707; //Used for target poses and initial poses
+        home.orientation.y = 0;
+        home.orientation.z = 0;
+        home.orientation.w = -0.707;
+        move_group.setPoseTarget(home);
         bool success = (move_group.plan(my_plan) ==
-                        moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                        moveit::planning_interface::MoveItErrorCode::SUCCESS); // Plans a motion to a target_pose, Hint: Choose your IK Plugin in the moveit_config - IKFast could be really useful here
         if (success) {
             move_group.move();
-            ROS_INFO("%s", "Reached home");
+            ROS_INFO("Reached home: %f|%f|%f", home.position.x, home.position.y, home.position.z);
         } else {
-            ROS_ERROR("%s", "Can't reach home");
-            ros::shutdown();
-            return 25;
+            ROS_ERROR("Cant reach home!");
         }
 
+        //Move to initial pose
         simple_reachability::CLCORegion r;
         r.id = region_id;
         region_id++;
         int result_count = 0;
         r.initial_pose = initial_pose;
-        current_state = move_group.getCurrentState();
-        move_group.setPoseTarget(initial_pose);
-        success = (move_group.plan(my_plan) ==
-                   moveit::planning_interface::MoveItErrorCode::SUCCESS); // Plans a motion to a target_pose, Hint: Choose your IK Plugin in the moveit_config - IKFast could be really useful here
-        if (success) {
-            move_group.move();
-            ROS_INFO("Reached initial pose: %f|%f|%f", initial_pose.position.x, initial_pose.position.y,
-                     initial_pose.position.z);
-        } else {
-            ROS_ERROR("Can not go to initial pose: %f|%f|%f", initial_pose.position.x, initial_pose.position.y,
-                      initial_pose.position.z);
+
+        move_group.setGoalOrientationTolerance(0.001); // Set an orienation tolerance
+        std::vector<geometry_msgs::Pose> waypoints = {home, initial_pose};
+        moveit_msgs::RobotTrajectory trajectory;
+        const double jump_threshold = 2.0;
+        const double eef_step = 0.01;
+        double fraction = move_group.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
+
+        ROS_INFO_STREAM("Moving to initial pose");
+        if (fraction == 1.0)
+            move_group.execute(trajectory);
+        else {
+            ROS_FATAL("Cant move to initial pose %f|%f|%f. Only %f percent of the path can be executed.", initial_pose.position.x, initial_pose.position.y, initial_pose.position.z, (fraction * 100));
             ROS_WARN("Skipping %ld steps.", target_poses.size());
             step_counter += target_poses.size();
             ROS_INFO_STREAM("Completed " << step_counter << " of " << steps);
@@ -243,10 +243,7 @@ int main(int argc, char **argv) {
             ROS_INFO("Time to complete: %02d:%02d:%02d", int(hours), int(minutes % 60), int(estimated_time % 60));
             continue; //Continue with next initial pose
         }
-
-        //ROS_INFO("%s", "Continue. PRESS Enter");
-        //std::string tmp;
-        //std::cin >> tmp;
+        ROS_INFO_STREAM("Moved to initial pose");
 
         for (geometry_msgs::Pose target_pose : target_poses) {
             if (ros::ok()) {
@@ -255,7 +252,7 @@ int main(int argc, char **argv) {
                 const double jump_threshold = 2.0;
                 const double eef_step = 0.01;
                 double fraction = move_group.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
-                ROS_ERROR_STREAM(fraction); //TODO ggf. Stellen, an denen Probleme auftreten schwarz markieren
+                //ROS_ERROR_STREAM(fraction); //TODO ggf. Stellen, an denen Probleme auftreten schwarz markieren
                 if (fraction == 1.0) { //TODO ggf. hier mit mehr Farben arbeiten
                     ROS_INFO("Plan found for Pose: %f %f %f", target_pose.position.x, target_pose.position.y,
                              target_pose.position.z);
@@ -263,8 +260,8 @@ int main(int argc, char **argv) {
                     r.reachable_poses.push_back(target_pose);
 
                 } else {
-                    ROS_WARN("No Plan found for Pose: %f %f %f", target_pose.position.x, target_pose.position.y,
-                             target_pose.position.z);
+                    //ROS_WARN("No Plan found for Pose: %f %f %f", target_pose.position.x, target_pose.position.y,
+                    //         target_pose.position.z);
                 }
                 step_counter++;
                 ROS_INFO_STREAM("Completed " << step_counter << " of " << steps);
@@ -292,13 +289,13 @@ int main(int argc, char **argv) {
 
     rosbag::Bag bag;
 
-    std::string filename = "clco_no_limits.bag";
+    std::string filename = "clco_initials.bag";
     std::string path = ros::package::getPath("simple_reachability");
     bag.open(path + "/bags/clco/" + filename, rosbag::bagmode::Write); // Save bag in the bags folder of the package
     bag.write("/clco_results", ros::Time::now(), result);
     bag.close();
 
-    path = path + "/bags/clco/singles_no_limits/";
+    path = path + "/bags/clco/singles_initials/";
     saveIndividualBagFiles(result.regions, path, resolution);
 
     ros::shutdown();

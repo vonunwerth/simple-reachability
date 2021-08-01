@@ -59,8 +59,8 @@ int main(int argc, char **argv) {
     target_pose.orientation.x = -0.707;
     target_pose.orientation.y = 0;
     target_pose.orientation.z = 0;
-    target_pose.position.x = 0.75;//move_group.getCurrentPose().pose.position.x;
-    target_pose.position.y = 0;//move_group.getCurrentPose().pose.position.y;
+    target_pose.position.x = -0.1;//move_group.getCurrentPose().pose.position.x;
+    target_pose.position.y = -0.5;//move_group.getCurrentPose().pose.position.y;
     target_pose.position.z = -0.35;//move_group.getCurrentPose().pose.position.z;
 
     std::vector<geometry_msgs::Pose> waypoints = {initial_pose, target_pose};

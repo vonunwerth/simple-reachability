@@ -1,12 +1,5 @@
 <launch>
-    <arg name="regions" default="false"/> <!-- workspace (false) or regions (true)-->
-
-        <node name="calculate_clco_regions" pkg="simple_reachability" type="calculate_constant_level_constant_orientation_regions" output="screen" if="$(arg regions)">
+        <node name="calculate_clco_regions" pkg="simple_reachability" type="calculate_constant_level_constant_orientation_regions" output="screen">
             <rosparam command="load" file="$(find simple_reachability)/config/constant_level_constant_orientation.yaml"/>
         </node>
-
-        <node name="calculate_clco" pkg="simple_reachability" type="calculate_constant_level_constant_orientation_workspace" output="screen" unless="$(eval arg('regions') == 'false')">
-            <rosparam command="load" file="$(find simple_reachability)/config/smooth.yaml"/>
-        </node>
-
 </launch>

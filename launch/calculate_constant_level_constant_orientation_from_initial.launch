@@ -1,0 +1,5 @@
+<launch>
+        <node name="calculate_clco_regions_from_initial" pkg="simple_reachability" type="calculate_constant_level_constant_orientation_regions_from_initial" output="screen">
+            <rosparam command="load" file="$(find simple_reachability)/config/constant_level_constant_orientation.yaml"/>
+        </node>
+</launch>

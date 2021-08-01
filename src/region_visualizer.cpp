@@ -12,8 +12,8 @@ int main(int argc, char **argv) {
 
     rosbag::Bag bag;
     std::string path = ros::package::getPath("simple_reachability");
-    std::string file_name = "clco_0_05.bag";
-    bag.open(path + "/bags/" + file_name);  // BagMode is Read by default
+    std::string file_name = "clco.bag";
+    bag.open(path + "/bags/clco/" + file_name);  // BagMode is Read by default
 
     visualization_msgs::Marker marker;
     visualization_msgs::Marker marker_initial_poses;
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     std::vector<Region> region_list_best;
     region_list_best.push_back(best);
 
-    ROS_INFO("Best region has id: %d and hold %zu reachable poses.", best.id, best.reachable_poses.size());
+    ROS_INFO("Best region has id: %d and hold %zu reachable poses, Initial pose: %f|%f|%f", best.id, best.reachable_poses.size(), best.initial_pose.position.x, best.initial_pose.position.y, best.initial_pose.position.z);
     for (const Region& region : region_list_best) {
         std_msgs::ColorRGBA color;
         color.r = rand() % 255;
