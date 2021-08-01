@@ -16,7 +16,8 @@
 #include <rosbag/bag.h>
 #include <cstdio>
 
-bool homing(moveit::planning_interface::MoveGroupInterface& move_group, std::string planning_group) {
+bool homing(moveit::planning_interface::MoveGroupInterface &move_group, std::string planning_group) {
+    ROS_INFO("Homing...");
     moveit::core::RobotStatePtr current_state = move_group.getCurrentState();
     std::vector<double> joint_group_positions;
     const moveit::core::JointModelGroup *joint_model_group =
@@ -31,7 +32,7 @@ bool homing(moveit::planning_interface::MoveGroupInterface& move_group, std::str
     joint_group_positions[5] = 0;
     move_group.setJointValueTarget(joint_group_positions);
     bool success = (move_group.plan(my_plan) ==
-            moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                    moveit::planning_interface::MoveItErrorCode::SUCCESS);
     if (success) {
         move_group.move();
         ROS_INFO("%s", "Reached home");
@@ -53,7 +54,9 @@ bool homing(moveit::planning_interface::MoveGroupInterface& move_group, std::str
  * @param move Move or just plan
  * @return Motion possible
  */
-bool move_arm_constrained(const ros::NodeHandle& node_handle, moveit::planning_interface::MoveGroupInterface& move_group, double x, double y, double z, bool move) {
+bool
+move_arm_constrained(const ros::NodeHandle &node_handle, moveit::planning_interface::MoveGroupInterface &move_group,
+                     double x, double y, double z, bool move) {
 
     geometry_msgs::Pose p2 = move_group.getCurrentPose().pose;
     geometry_msgs::Pose p = move_group.getCurrentPose("ur10_base_link").pose;
@@ -79,7 +82,7 @@ bool move_arm_constrained(const ros::NodeHandle& node_handle, moveit::planning_i
     const double eef_step = 0.01;
     double fraction = move_group.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
 
-    ROS_INFO("Moving to pose %f|%f|%f", x, y, z);
+    ROS_INFO("Moving to pose %f|%f|%f", x, y, z); //Unterscheiden zwischen bewegen und planen bei der Ausgabe je nach move param
     if (fraction == 1) {
         if (move) {
             move_group.execute(trajectory);
@@ -102,7 +105,8 @@ bool move_arm_constrained(const ros::NodeHandle& node_handle, moveit::planning_i
 }
 
 
-bool move_arm(const ros::NodeHandle& node_handle, moveit::planning_interface::MoveGroupInterface& move_group, double x, double y, double z, bool move) {
+bool move_arm(const ros::NodeHandle &node_handle, moveit::planning_interface::MoveGroupInterface &move_group, double x,
+              double y, double z, bool move) {
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 
     geometry_msgs::Pose initial_pose;
@@ -118,7 +122,7 @@ bool move_arm(const ros::NodeHandle& node_handle, moveit::planning_interface::Mo
     geometry_msgs::Pose p2 = move_group.getCurrentPose().pose;
     geometry_msgs::Pose p = move_group.getCurrentPose("ur10_base_link").pose;
 
-    ROS_INFO_STREAM("Moving to initial pose");
+    ROS_INFO("Moving to pose %f|%f|%f", x, y, z);
     bool success = (move_group.plan(my_plan) ==
                     moveit::planning_interface::MoveItErrorCode::SUCCESS); // Plans a motion to a target_pose, Hint: Choose your IK Plugin in the moveit_config - IKFast could be really useful here
     if (success) {
@@ -141,19 +145,25 @@ bool move_arm(const ros::NodeHandle& node_handle, moveit::planning_interface::Mo
     }
 }
 
-bool move_arm(const ros::NodeHandle& node_handle, moveit::planning_interface::MoveGroupInterface& move_group, double x, double y, double z) {
+bool move_arm(const ros::NodeHandle &node_handle, moveit::planning_interface::MoveGroupInterface &move_group, double x,
+              double y, double z) {
     return move_arm(node_handle, move_group, x, y, z, true);
 }
 
-bool move_arm_constrained(const ros::NodeHandle& node_handle, moveit::planning_interface::MoveGroupInterface& move_group, double x, double y, double z) {
+bool
+move_arm_constrained(const ros::NodeHandle &node_handle, moveit::planning_interface::MoveGroupInterface &move_group,
+                     double x, double y, double z) {
     return move_arm_constrained(node_handle, move_group, x, y, z, true);
 }
 
-bool move_arm(const ros::NodeHandle& node_handle, moveit::planning_interface::MoveGroupInterface& move_group, geometry_msgs::Pose p) {
+bool move_arm(const ros::NodeHandle &node_handle, moveit::planning_interface::MoveGroupInterface &move_group,
+              geometry_msgs::Pose p) {
     return move_arm(node_handle, move_group, p.position.x, p.position.y, p.position.z); //TODO orientation
 }
 
-bool move_arm_constrained(const ros::NodeHandle& node_handle, moveit::planning_interface::MoveGroupInterface& move_group, geometry_msgs::Pose p) {
+bool
+move_arm_constrained(const ros::NodeHandle &node_handle, moveit::planning_interface::MoveGroupInterface &move_group,
+                     geometry_msgs::Pose p) {
     return move_arm_constrained(node_handle, move_group, p.position.x, p.position.y, p.position.z);
 }
 
