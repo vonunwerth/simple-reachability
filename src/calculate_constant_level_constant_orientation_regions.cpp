@@ -283,8 +283,8 @@ int main(int argc, char **argv) {
     }
 
 
+    int counter = 0;
     for (geometry_msgs::Pose region : region_poses) {
-        int counter = 0;
         ROS_INFO("Init: %f|%f|%f --> %d", region.position.x, region.position.y, region.position.z,
                  region_counts[counter]);
         counter++;
