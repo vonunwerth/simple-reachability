@@ -258,10 +258,8 @@ void saveIndividualBagFiles(const std::vector<simple_reachability::CLCORegion> &
     saveIndividualBagFiles(regions, path, 0.05);
 }
 
-int extract_regions() {
+int extract_regions(std::string path, std::string file_name) {
     rosbag::Bag bag;
-    std::string path = ros::package::getPath("simple_reachability");
-    std::string file_name = "clco/clco.bag";
     bag.open(path + "/bags/" + file_name);  // BagMode is Read by default
 
     std::vector<Region> region_list;
@@ -276,5 +274,34 @@ int extract_regions() {
 
     saveIndividualBagFiles(region_list, path + "/bags/clco/singles/");
     return 0;
+}
+
+/**
+ * Returns the region with the most reachable poses in one clco bag file
+ * @return Region with the most reachable poses, multiple possible
+ */
+std::vector<Region> find_best_region(std::string path, std::string file_name) {
+    rosbag::Bag bag;
+    bag.open(path + "/bags/" + file_name);
+
+    unsigned long most_reachable_poses = 0;
+    std::vector<Region> best_regions;
+    for (rosbag::MessageInstance const m: rosbag::View(bag)) {
+        simple_reachability::CLCOResult::ConstPtr region_msg = m.instantiate<simple_reachability::CLCOResult>();
+
+        for (const simple_reachability::CLCORegion &region : region_msg->regions) {
+            if (region.reachable_poses.size() > most_reachable_poses) {
+                best_regions.clear();
+                Region r(region.initial_pose, region.reachable_poses, region.id);
+                best_regions.push_back(r);
+                most_reachable_poses = r.reachable_poses.size();
+            } else if (region.reachable_poses.size() == most_reachable_poses) {
+                Region r(region.initial_pose, region.reachable_poses, region.id);
+                best_regions.push_back(r);
+            }
+        }
+    }
+
+    return best_regions;
 }
 

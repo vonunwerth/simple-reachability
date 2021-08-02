@@ -247,13 +247,13 @@ int main(int argc, char **argv) {
 
     rosbag::Bag bag;
 
-    std::string filename = "clco_no_limits.bag";
+    std::string filename = "clco_initial.bag";
     std::string path = ros::package::getPath("simple_reachability");
     bag.open(path + "/bags/clco/" + filename, rosbag::bagmode::Write); // Save bag in the bags folder of the package
     bag.write("/clco_results", ros::Time::now(), result);
     bag.close();
 
-    path = path + "/bags/clco/singles_no_limits/";
+    path = path + "/bags/clco/singles_initials/";
     saveIndividualBagFiles(result.regions, path, resolution);
 
     ros::shutdown();
