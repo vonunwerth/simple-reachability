@@ -37,6 +37,7 @@ int main(int argc, char **argv) {
 
             for (int i = 0; i < marker->points.size(); i++) {
                 geometry_msgs::Point point = marker->points.at(i);
+                point.z = -0.35; //TODO abfragen was gemacht werden soll, wie auch bei scale
                 points.points.push_back(point);
                 points.colors.push_back(marker->colors.at(i));
             }

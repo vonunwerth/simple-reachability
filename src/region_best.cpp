@@ -57,7 +57,7 @@ void paths(const geometry_msgs::Pose &p, std::vector<Region> region_list, Region
         master_region.reachable_poses.push_back(p);
     }
     else {
-        //ROS_ERROR("Not valid: %f|%f|%f with id: %d", p.position.x, p.position.y, p.position.z, region_number);
+        ROS_ERROR("Not valid: %f|%f|%f with id: %d", p.position.x, p.position.y, p.position.z, region_number);
     }
 }
 
@@ -126,21 +126,21 @@ int main(int argc, char **argv) {
     }
 
 
-    std::vector<Region> cutted_region_list;
-    float y_max = 999999990.40; //-0.40 TODO as param
-    for (const Region &region : master_regions) {
-        if (region.initial_pose.position.y <= y_max) {
-            std::vector<geometry_msgs::Pose> new_re_poses;
-            for (geometry_msgs::Pose pose : region.reachable_poses) {
-                if (pose.position.y <= y_max) {
-                    new_re_poses.push_back(pose);
-                }
-            }
-            Region r(region.initial_pose, new_re_poses, region.id);
-            cutted_region_list.push_back(r);
-        }
-    }
-    ROS_INFO("Reduced to %zu regions", cutted_region_list.size());
+    std::vector<Region> cutted_region_list = master_regions;
+//    float y_max = 999999990.40; //-0.40 TODO as param
+//    for (const Region &region : master_regions) {
+//        if (region.initial_pose.position.y <= y_max) {
+//            std::vector<geometry_msgs::Pose> new_re_poses;
+//            for (geometry_msgs::Pose pose : region.reachable_poses) {
+//                if (pose.position.y <= y_max) {
+//                    new_re_poses.push_back(pose);
+//                }
+//            }
+//            Region r(region.initial_pose, new_re_poses, region.id);
+//            cutted_region_list.push_back(r);
+//        }
+//    }
+//    ROS_INFO("Reduced to %zu regions", cutted_region_list.size());
 
 
     for (const Region &r : cutted_region_list) {
@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
     ROS_INFO("Max Master Region %d holds %zu reachable poses", master_regions[master_id].id,
              master_regions[master_id].reachable_poses.size());
 
-    saveIndividualBagFiles(cutted_region_list, path + "/bags/debug/", 0.05); //TODO res as param
+    saveIndividualBagFiles(cutted_region_list, path + "/bags/clco/aclco/", 0.05); //TODO res as param
 
     ros::shutdown();
     return 0;

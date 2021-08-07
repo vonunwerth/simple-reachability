@@ -140,14 +140,14 @@ int main(int argc, char **argv) {
     tf::Vector3 z_axis(0, 0, 1);
     tf::Vector3 x_axis(1, 0, 0);
     double orientation_tolerance;
-    //node_handle.getParam("ee_orientation_x", pose.orientation.x);
-    //node_handle.getParam("ee_orientation_y", pose.orientation.y);
-    //node_handle.getParam("ee_orientation_z", pose.orientation.z);
-    //node_handle.getParam("ee_orientation_w", pose.orientation.w);
-    pose.orientation.x = 0.707;
-    pose.orientation.y = 0;
-    pose.orientation.z = 0;
-    pose.orientation.w = -0.707;
+    node_handle.getParam("ee_orientation_x", pose.orientation.x);
+    node_handle.getParam("ee_orientation_y", pose.orientation.y);
+    node_handle.getParam("ee_orientation_z", pose.orientation.z);
+    node_handle.getParam("ee_orientation_w", pose.orientation.w);
+//    pose.orientation.x = 0.707;
+//    pose.orientation.y = 0;
+//    pose.orientation.z = 0;
+//    pose.orientation.w = -0.707;
 
     node_handle.param<double>("orientation_tolerance", orientation_tolerance, 0.01);
     ROS_INFO_STREAM(

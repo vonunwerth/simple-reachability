@@ -223,6 +223,8 @@ int main(int argc, char **argv) {
                 position.setY(y);
                 position.setZ(z);
 
+                tf::pointTFToMsg(position, pose.position);
+
                 if (calculate_full) { // If a full workspace is to be calculated
                     for (int x_rot = 0; x_rot < 2; x_rot++) {
                         for (int z_rot = 1; z_rot <
@@ -230,7 +232,6 @@ int main(int argc, char **argv) {
                             if (position.length() <=
                                 radius) { // First check if a full calculation should be done, then check if position is in the possible sphere defined by the arms reach
                                 bool already_calculated = false;
-                                tf::pointTFToMsg(position, pose.position);
                                 if (std::find(target_poses.begin(), target_poses.end(), pose) ==
                                     target_poses.end()) {// If the pose (especially a rotated one) is not already in target_poses)
                                     if (std::find(points.points.begin(), points.points.end(), pose.position) !=
@@ -275,12 +276,13 @@ int main(int argc, char **argv) {
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 
     move_group.setGoalOrientationTolerance(orientation_tolerance); // Set an orienation tolerance
+    ROS_INFO("Target poses size %zu", target_poses.size());
     for (geometry_msgs::Pose &target_pose : target_poses) { // For all target poses do ...
         if (ros::ok()) { // Check if shutdown is requested, otherwise connection to move it and out stream would be lost and all markers will generated with "unsuccessful" state
             move_group.setPoseTarget(target_pose);
+            ROS_INFO("Target: %f|%f|%f -- %f|%f|%f|%f", target_pose.position.x, target_pose.position.y, target_pose.position.z, target_pose.orientation.x, target_pose.orientation.y, target_pose.orientation.z, target_pose.orientation.w);
             bool success = (move_group.plan(my_plan) ==
                             moveit::planning_interface::MoveItErrorCode::SUCCESS); // Plans a motion to a target_pose, Hint: Choose your IK Plugin in the moveit_config - IKFast could be really useful here
-
             geometry_msgs::Point target;
             target = target_pose.position;
 
@@ -288,7 +290,8 @@ int main(int argc, char **argv) {
             if (success) {
                 ROS_INFO_STREAM("Solution found"); // ROS_DEBUG
                 points.colors.push_back(green); //Plan found
-                //            move_group.move();
+
+//                            move_group.move();
             } else {
                 points.colors.push_back(red); //If no plan is found MoveIt! will provide a warning in ROS_WARN
             }

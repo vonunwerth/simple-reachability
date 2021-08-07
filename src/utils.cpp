@@ -16,6 +16,16 @@
 #include <rosbag/bag.h>
 #include <cstdio>
 
+simple_reachability::CLCOResult::ConstPtr openBag(std::string path, std::string file_name) {
+    rosbag::Bag bag;
+    bag.open(path + "/bags/" + file_name);
+    simple_reachability::CLCOResult::ConstPtr c;
+    for (rosbag::MessageInstance const m: rosbag::View(bag)) {
+        c = m.instantiate<simple_reachability::CLCOResult>();
+    }
+    return c;
+}
+
 bool homing(moveit::planning_interface::MoveGroupInterface &move_group, std::string planning_group) {
     ROS_INFO("Homing...");
     moveit::core::RobotStatePtr current_state = move_group.getCurrentState();
@@ -226,8 +236,9 @@ void saveIndividualBagFiles(const std::vector<Region> &regions, const std::strin
         ROS_INFO("Finished.");
 
         rosbag::Bag saveBag;
-        std::string filename = "master_region_visualizer" + std::to_string(counter) +
-                               ".bag"; //TODO increase counter?!!!!!!!!!!!! Hier weiter 27.07.2021 20:52
+        std::string filename = "master_region_visualizer" + std::to_string(region.id) +
+                               ".bag"; //TODO testen ob region id besser funktioniert als counter
+        ROS_INFO("%s", filename.c_str());
         saveBag.open(path + filename,
                      rosbag::bagmode::Write); // Save bag in the bags folder of the package
         saveBag.write("/visualization_marker", ros::Time::now(), marker);
@@ -258,37 +269,15 @@ void saveIndividualBagFiles(const std::vector<simple_reachability::CLCORegion> &
     saveIndividualBagFiles(regions, path, 0.05);
 }
 
-int extract_regions(std::string path, std::string file_name) {
-    rosbag::Bag bag;
-    bag.open(path + "/bags/" + file_name);  // BagMode is Read by default
-
-    std::vector<Region> region_list;
-    for (rosbag::MessageInstance const m: rosbag::View(bag)) {
-        simple_reachability::CLCOResult::ConstPtr region_msg = m.instantiate<simple_reachability::CLCOResult>();
-
-        for (const simple_reachability::CLCORegion &region : region_msg->regions) {
-            Region r(region.initial_pose, region.reachable_poses, region.id);
-            region_list.push_back(r);
-        }
-    }
-
-    saveIndividualBagFiles(region_list, path + "/bags/clco/singles/");
-    return 0;
-}
-
 /**
  * Returns the region with the most reachable poses in one clco bag file
  * @return Region with the most reachable poses, multiple possible
  */
 std::vector<Region> find_best_region(std::string path, std::string file_name) {
-    rosbag::Bag bag;
-    bag.open(path + "/bags/" + file_name);
 
     unsigned long most_reachable_poses = 0;
     std::vector<Region> best_regions;
-    for (rosbag::MessageInstance const m: rosbag::View(bag)) {
-        simple_reachability::CLCOResult::ConstPtr region_msg = m.instantiate<simple_reachability::CLCOResult>();
-
+    simple_reachability::CLCOResult::ConstPtr region_msg = openBag(path, std::move(file_name));
         for (const simple_reachability::CLCORegion &region : region_msg->regions) {
             if (region.reachable_poses.size() > most_reachable_poses) {
                 best_regions.clear();
@@ -300,8 +289,25 @@ std::vector<Region> find_best_region(std::string path, std::string file_name) {
                 best_regions.push_back(r);
             }
         }
-    }
 
     return best_regions;
 }
+
+void saveIndividualBagFiles(const std::string& path, std::string file_name) {
+    simple_reachability::CLCOResult::ConstPtr c = openBag(path, std::move(file_name));
+    //TODO tranform function for region and clco_region
+    saveIndividualBagFiles(c->regions, path + "/bags/clco/singles_fox/"); //TODO dependend on file_name, create new folder and put them there
+}
+
+void list_regions(const std::string path, std::string file_name) {
+    simple_reachability::CLCOResult::ConstPtr c = openBag(path, std::move(file_name));
+
+    int counter = 0;
+    for (simple_reachability::CLCORegion region : c->regions) {
+        ROS_INFO("%d", region.id);
+        counter++;
+    }
+    ROS_INFO("Found %d regions", counter);
+}
+
 
