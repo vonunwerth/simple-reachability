@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
     }
 
     // Loads the complete_region parameter from the configuration
-    bool complete_region; //TODO either complete_region or availability of all x-y-z ranges on the param server
+    bool complete_region;
     node_handle.param<bool>("complete_region", complete_region, false);
 
     // Load the end-effector orientation parameters from the configuration

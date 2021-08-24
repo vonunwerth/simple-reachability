@@ -162,7 +162,7 @@ move_arm_constrained(const ros::NodeHandle &node_handle, moveit::planning_interf
 
 bool move_arm(const ros::NodeHandle &node_handle, moveit::planning_interface::MoveGroupInterface &move_group,
               geometry_msgs::Pose p) {
-    return move_arm(node_handle, move_group, p.position.x, p.position.y, p.position.z); //TODO orientation
+    return move_arm(node_handle, move_group, p.position.x, p.position.y, p.position.z);
 }
 
 bool move_arm_constrained(const ros::NodeHandle &node_handle, moveit::planning_interface::MoveGroupInterface &move_group,
@@ -172,7 +172,7 @@ bool move_arm_constrained(const ros::NodeHandle &node_handle, moveit::planning_i
 
 bool move_arm(const ros::NodeHandle &node_handle, moveit::planning_interface::MoveGroupInterface &move_group,
               geometry_msgs::Pose p, bool move) {
-    return move_arm(node_handle, move_group, p.position.x, p.position.y, p.position.z, move); //TODO orientation
+    return move_arm(node_handle, move_group, p.position.x, p.position.y, p.position.z, move);
 }
 
 bool move_arm_constrained(const ros::NodeHandle &node_handle, moveit::planning_interface::MoveGroupInterface &move_group,
@@ -203,7 +203,7 @@ void saveIndividualBagFiles(const std::vector<Region> &regions, const std::strin
         marker.action = visualization_msgs::Marker::ADD;
         marker.id = 0;
         marker.type = visualization_msgs::Marker::POINTS;
-        marker.scale.x = resolution; //TODO depending on resolution
+        marker.scale.x = resolution;
         marker.scale.y = resolution;
         ROS_INFO("Writing bag for Region %d with %zu poses.", counter,
                  region.reachable_poses.size());
@@ -224,7 +224,7 @@ void saveIndividualBagFiles(const std::vector<Region> &regions, const std::strin
 
         rosbag::Bag saveBag;
         std::string filename = "master_region_visualizer_" + std::to_string(region.id) + "_" + std::to_string(region.reachable_poses.size()) +
-                               ".bag"; //TODO testen ob region id besser funktioniert als counter
+                               ".bag";
         ROS_INFO("%s", filename.c_str());
         saveBag.open(path + filename,
                      rosbag::bagmode::Write); // Save bag in the bags folder of the package

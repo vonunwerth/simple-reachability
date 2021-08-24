@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
     }
 
     // Loads the complete_region parameter from the configuration
-    bool complete_region; //TODO either complete_region or availability of all x-y-z ranges on the param server
+    bool complete_region;
     node_handle.param<bool>("complete_region", complete_region, false);
 
     // Load the end-effector orientation parameters from the configuration
@@ -210,7 +210,7 @@ int main(int argc, char **argv) {
     ros::AsyncSpinner spinner(1);
     spinner.start();
     moveit::planning_interface::MoveGroupInterface move_group(planning_group);
-    //TODO move_group.setEndEffector() ?
+
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
 
     robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
@@ -317,8 +317,8 @@ int main(int argc, char **argv) {
             const double jump_threshold = 2.0;
             const double eef_step = 0.01;
             double fraction = move_group.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
-            ROS_ERROR_STREAM(fraction); //TODO ggf. Stellen, an denen Probleme auftreten schwarz markieren
-            if (fraction == 1.0) { //TODO ggf. hier mit mehr Farben arbeiten
+            ROS_ERROR_STREAM(fraction);
+            if (fraction == 1.0) {
                 ROS_INFO("Plan found for Pose: %f %f %f", target_pose.position.x, target_pose.position.y,
                          target_pose.position.z);
                 points.colors.push_back(green);

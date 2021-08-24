@@ -123,11 +123,11 @@ int main(int argc, char **argv) {
     std::vector<geometry_msgs::Pose> target_poses; // List for all pose to go to from each initial point
     std::vector<geometry_msgs::Point> temp_positions; // Must be used because Pose has no ==
 
-    y_max = -0.4;//TODO DEBUG
+    y_max = -0.4;
 
     //Calculate target poses
     ROS_INFO("min/max values %f, %f, %f, %f, %f, %f", x_min, y_min, z_min, x_max, y_max, z_max);
-    for (double z = z_min; z <= z_max; z += resolution) { //TODO als Methode auslagern für inital und targets
+    for (double z = z_min; z <= z_max; z += resolution) {
         for (double x = x_min; x <= x_max; x += resolution) {
             for (double y = y_min; y <= y_max; y += resolution) {
                 //pose.orientation.w = 0.707;
@@ -151,7 +151,6 @@ int main(int argc, char **argv) {
         }
     }
 
-    //TODO as method with resolution parameter
     //Calculate all initial poses on the plane using their own resolution
     std::vector<geometry_msgs::Pose> initial_poses;
     temp_positions.clear();

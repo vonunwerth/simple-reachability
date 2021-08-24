@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
 
     rosbag::Bag bag;
     std::string path = ros::package::getPath("simple_reachability");
-    std::string file_name = "clco/clco.bag"; // TODO als param
+    std::string file_name = "clco/clco.bag";
     bag.open(path + "/bags/" + file_name);  // BagMode is Read by default
 
     std::vector<Region> region_list;
@@ -119,7 +119,6 @@ int main(int argc, char **argv) {
         master_regions.push_back(master_region);
     }
 
-    //TODO comment this out if not needed
     std::vector<Region> cut_region_list = master_regions;
     float y_max = -0.40; // configure for your robot
     for (const Region &region : master_regions) {
