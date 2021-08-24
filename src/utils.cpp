@@ -9,11 +9,8 @@
 #include <rosbag/view.h>
 
 #include <moveit/move_group_interface/move_group_interface.h>
-#include <moveit/planning_scene_interface/planning_scene_interface.h>
-#include <moveit_msgs/CollisionObject.h>
 #include <moveit_visual_tools/moveit_visual_tools.h>
 #include <moveit/kinematics_metrics/kinematics_metrics.h>
-#include <rosbag/bag.h>
 #include <cstdio>
 
 simple_reachability::CLCOResult::ConstPtr openBag(std::string path, std::string file_name) {
@@ -117,7 +114,7 @@ bool move_arm(const ros::NodeHandle &node_handle, moveit::planning_interface::Mo
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 
     geometry_msgs::Pose initial_pose;
-    initial_pose.orientation.w = 0.707; //TODO this movegroup, ... as param
+    initial_pose.orientation.w = 0.707;
     initial_pose.orientation.x = -0.707;
     initial_pose.orientation.y = 0;
     initial_pose.orientation.z = 0;
@@ -186,7 +183,7 @@ bool move_arm_constrained(const ros::NodeHandle &node_handle, moveit::planning_i
 
 /**
  * Converts Regions to CLCORegions and calls the proper method
- * @param regions Regionlist
+ * @param regions Region list
  * @param path Path to save the individual bags
  */
 void saveIndividualBagFiles(const std::vector<Region> &regions, const std::string &path, double resolution) {
@@ -200,24 +197,14 @@ void saveIndividualBagFiles(const std::vector<Region> &regions, const std::strin
 
     for (const Region &region : regions) {
         visualization_msgs::Marker marker;
-        visualization_msgs::Marker marker_initial_poses;
         marker.header.frame_id = "ur10_base_link";
-        marker_initial_poses.header.frame_id = "ur10_base_link";
         marker.header.stamp = ros::Time(0);
-        marker_initial_poses.header.stamp = ros::Time(0);
         marker.ns = "points";
-        marker_initial_poses.ns = "points";
         marker.action = visualization_msgs::Marker::ADD;
-        marker_initial_poses.action = visualization_msgs::Marker::ADD;
         marker.id = 0;
-        marker_initial_poses.id = 1;
         marker.type = visualization_msgs::Marker::POINTS;
-        marker_initial_poses.type = visualization_msgs::Marker::SPHERE_LIST;
         marker.scale.x = resolution; //TODO depending on resolution
         marker.scale.y = resolution;
-        marker_initial_poses.scale.x = resolution;
-        marker_initial_poses.scale.y = resolution;
-        marker_initial_poses.scale.z = resolution;
         ROS_INFO("Writing bag for Region %d with %zu poses.", counter,
                  region.reachable_poses.size());
         //Save results in markers
@@ -236,7 +223,7 @@ void saveIndividualBagFiles(const std::vector<Region> &regions, const std::strin
         ROS_INFO("Finished.");
 
         rosbag::Bag saveBag;
-        std::string filename = "master_region_visualizer" + std::to_string(region.id) +
+        std::string filename = "master_region_visualizer_" + std::to_string(region.id) + "_" + std::to_string(region.reachable_poses.size()) +
                                ".bag"; //TODO testen ob region id besser funktioniert als counter
         ROS_INFO("%s", filename.c_str());
         saveBag.open(path + filename,
@@ -295,8 +282,7 @@ std::vector<Region> find_best_region(std::string path, std::string file_name) {
 
 void saveIndividualBagFiles(const std::string& path, std::string file_name) {
     simple_reachability::CLCOResult::ConstPtr c = openBag(path, std::move(file_name));
-    //TODO tranform function for region and clco_region
-    saveIndividualBagFiles(c->regions, path + "/bags/clco/singles_fox/"); //TODO dependend on file_name, create new folder and put them there
+    saveIndividualBagFiles(c->regions, path + "/bags/clco/");
 }
 
 void list_regions(const std::string path, std::string file_name) {
@@ -304,7 +290,7 @@ void list_regions(const std::string path, std::string file_name) {
 
     int counter = 0;
     for (simple_reachability::CLCORegion region : c->regions) {
-        ROS_INFO("%d", region.id);
+        ROS_INFO("%d holds %zu", region.id, region.reachable_poses.size());
         counter++;
     }
     ROS_INFO("Found %d regions", counter);

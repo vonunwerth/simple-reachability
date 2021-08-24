@@ -4,7 +4,6 @@
 int main(int argc, char **argv) {
     ros::init(argc, argv, "calculate_constant_level_constant_orientation_workspace");
     ros::NodeHandle node_handle("~");
-    //TODO goal ggf hier visualisieren
 
     std::string planning_group;
     if (node_handle.getParam("planning_group", planning_group)) ROS_INFO_STREAM("Planning group: " << planning_group);

@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     marker_initial_poses.id = 1;
     marker.type = visualization_msgs::Marker::POINTS;
     marker_initial_poses.type = visualization_msgs::Marker::SPHERE_LIST;
-    marker.scale.x = 0.02; //TODO depending on resolution
+    marker.scale.x = 0.02;
     marker.scale.y = 0.02;
     marker_initial_poses.scale.x = 0.02;
     marker_initial_poses.scale.y = 0.02;

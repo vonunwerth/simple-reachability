@@ -6,10 +6,14 @@
 #include <ros/node_handle.h>
 #include <ros/package.h>
 
-std::vector<std::vector<int>> visualization_modes;
-
+/**
+ * Do some stuff with a bag file, change lines 47-49 do do your own changes
+ * @param argc
+ * @param argv
+ * @return
+ */
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "ros_bag_editer");
+    ros::init(argc, argv, "ros_bag_editor");
     ros::NodeHandle node_handle("~"); // Allow access to private ROS parameters
 
     rosbag::Bag bag;
@@ -20,7 +24,6 @@ int main(int argc, char **argv) {
     bag.open(path + "/bags/" + file_name);  // BagMode is Read by default
 
     visualization_msgs::Marker points;
-
 
     for (rosbag::MessageInstance const m: rosbag::View(bag)) {
         visualization_msgs::Marker::ConstPtr marker = m.instantiate<visualization_msgs::Marker>();
@@ -37,7 +40,7 @@ int main(int argc, char **argv) {
 
             for (int i = 0; i < marker->points.size(); i++) {
                 geometry_msgs::Point point = marker->points.at(i);
-                point.z = -0.35; //TODO abfragen was gemacht werden soll, wie auch bei scale
+                point.z = -0.45;
                 points.points.push_back(point);
                 points.colors.push_back(marker->colors.at(i));
             }

@@ -1,5 +1,5 @@
 planning_group: "manipulator" # manipulator planning group
-manipulator_base_link: "ur10_base_link" # base link of the manipulator
+manipulator_base_link: "base_link" # base link of the manipulator
 manipulator_reach: 1.30 # maximum reach of the manipulator - this will set the radius of the initial workspace sphere where all positions will be calculated in
 resolution: 0.02 # resolution of the calculated workspace in meters
 scale: 0 # 0 means automatic scaling, otherwise the given value will be used

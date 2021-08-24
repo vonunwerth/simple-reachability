@@ -32,7 +32,7 @@ void paths(const geometry_msgs::Pose &p, std::vector<Region> region_list, Region
             if (region_list[region_number].contains(goal)) {
                 p_to_all_count++;
             } else {
-                //ROS_WARN("Goal not found: %d does not contain %f|%f|%f", region_number, goal.position.x, goal.position.y, goal.position.z);
+                ROS_WARN("Goal not found: %d does not contain %f|%f|%f", region_number, goal.position.x, goal.position.y, goal.position.z);
             }
         }
     }
@@ -45,14 +45,13 @@ void paths(const geometry_msgs::Pose &p, std::vector<Region> region_list, Region
             if (region_list[start_number].contains(p)) {
                 all_to_p_count++;
             } else {
-                //ROS_WARN("P not found: %d does not contain %f|%f|%f", start_number, p.position.x, p.position.y, p.position.z);
+                ROS_WARN("P not found: %d does not contain %f|%f|%f", start_number, p.position.x, p.position.y, p.position.z);
             }
         }
     }
     bool all_to_p = false;
     if (all_to_p_count == master_region.reachable_poses.size()) all_to_p = true;
 
-    //ROS_INFO("A->P: %d, P->A: %d, atpCount: %d, ptaCount: %d, All_to_p and p_to_all_COUNT: %d, All_to_p and p_to_all: %d, Size: %zu", all_to_p, p_to_all, all_to_p_count, p_to_all_count, (all_to_p and p_to_all_count), (all_to_p and p_to_all), master_region.reachable_poses.size());
     if (all_to_p and p_to_all) {
         master_region.reachable_poses.push_back(p);
     }
@@ -83,8 +82,6 @@ int main(int argc, char **argv) {
         }
     }
 
-    int z = region_list[-1].id;
-
     ROS_INFO("Found %zu regions.", region_list.size());
 
     std_msgs::ColorRGBA BLACK;
@@ -92,9 +89,6 @@ int main(int argc, char **argv) {
     BLACK.g = 0;
     BLACK.b = 0;
     BLACK.a = 1.0;
-
-    //std::vector<Region> region_list_debug;//TODO DEBUG
-    //region_list_debug.push_back(region_list[346]);
 
 
     for (Region region : region_list) { //region_list_debug for one region only
@@ -104,52 +98,52 @@ int main(int argc, char **argv) {
         master_region.initial_pose = region.initial_pose;
         master_region.reachable_poses.push_back(region.initial_pose);
 
-//
-//        std::vector<int> numbers;
-//        for (int i = 0; i < region.reachable_poses.size(); i++) {
-//            numbers.push_back(i);
-//        }
-//        auto rng = std::default_random_engine {};
-//        std::shuffle(std::begin(numbers), std::end(numbers), rng);
-//
-//        std::vector<geometry_msgs::Pose> shuffled_poses;
-//        for (int num : numbers) {
-//            shuffled_poses.push_back(region.reachable_poses[num]);
-//        }
-//        region.reachable_poses = shuffled_poses;
+
+        std::vector<int> numbers;
+        for (int i = 0; i < region.reachable_poses.size(); i++) {
+            numbers.push_back(i);
+        }
+        auto rng = std::default_random_engine {};
+        std::shuffle(std::begin(numbers), std::end(numbers), rng);
+
+        std::vector<geometry_msgs::Pose> shuffled_poses;
+        for (int num : numbers) {
+            shuffled_poses.push_back(region.reachable_poses[num]);
+        }
+        region.reachable_poses = shuffled_poses;
 
 
-        for (geometry_msgs::Pose p : region.reachable_poses) { // Es reicht aus, alle Posen in region1 zu checken und nicht rekursiv von der initialpose alle nachbarn zu checken, da auf keinen Fall mehr dazu kommen als bereits in region1 sind --> alle außerhalb von region1 sind von der initialpose von region1 nicht erreichbar! Über Nachbarn wäre effizienter, aber egal
+        for (geometry_msgs::Pose p : region.reachable_poses) {
             paths(p, region_list, master_region);
         }
         master_regions.push_back(master_region);
     }
 
+    //TODO comment this out if not needed
+    std::vector<Region> cut_region_list = master_regions;
+    float y_max = -0.40; // configure for your robot
+    for (const Region &region : master_regions) {
+        if (region.initial_pose.position.y <= y_max) {
+            std::vector<geometry_msgs::Pose> new_re_poses;
+            for (geometry_msgs::Pose pose : region.reachable_poses) {
+                if (pose.position.y <= y_max) {
+                    new_re_poses.push_back(pose);
+                }
+            }
+            Region r(region.initial_pose, new_re_poses, region.id);
+            cut_region_list.push_back(r);
+        }
+    }
+    ROS_INFO("Reduced to %zu regions", cut_region_list.size());
 
-    std::vector<Region> cutted_region_list = master_regions;
-//    float y_max = 999999990.40; //-0.40 TODO as param
-//    for (const Region &region : master_regions) {
-//        if (region.initial_pose.position.y <= y_max) {
-//            std::vector<geometry_msgs::Pose> new_re_poses;
-//            for (geometry_msgs::Pose pose : region.reachable_poses) {
-//                if (pose.position.y <= y_max) {
-//                    new_re_poses.push_back(pose);
-//                }
-//            }
-//            Region r(region.initial_pose, new_re_poses, region.id);
-//            cutted_region_list.push_back(r);
-//        }
-//    }
-//    ROS_INFO("Reduced to %zu regions", cutted_region_list.size());
 
-
-    for (const Region &r : cutted_region_list) {
+    for (const Region &r : cut_region_list) {
         ROS_INFO("%d : %zu", r.id, r.reachable_poses.size());
     }
 
     int max = 0;
     int master_id = -1;
-    for (const Region &mr : cutted_region_list) {
+    for (const Region &mr : cut_region_list) {
         if (mr.reachable_poses.size() > max) {
             max = mr.reachable_poses.size();
             master_id = mr.id;
@@ -159,7 +153,7 @@ int main(int argc, char **argv) {
     ROS_INFO("Max Master Region %d holds %zu reachable poses", master_regions[master_id].id,
              master_regions[master_id].reachable_poses.size());
 
-    saveIndividualBagFiles(cutted_region_list, path + "/bags/clco/aclco/", 0.05); //TODO res as param
+    saveIndividualBagFiles(cut_region_list, path + "/bags/clco/single_clco_regions/", 0.05);
 
     ros::shutdown();
     return 0;

@@ -6,6 +6,9 @@
 #include <ros/node_handle.h>
 #include <ros/package.h>
 
+/**
+ * Vector containing all visualization modes
+ */
 std::vector<std::vector<int>> visualization_modes;
 
 int main(int argc, char **argv) {
