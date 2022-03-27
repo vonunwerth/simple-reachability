@@ -3,6 +3,10 @@
 
 This package allows you to visualize the workspace of your robot easily considering collision detection and joint limits. The calculation will be done using the **moveit** framwork. So the only thing you need is a **moveit_config** of your robot.
 
+### Dependencies
+You need to install moveit and its visual tools:
+```sudo apt install ros-noetic-moveit ros-noetic-moveit-visual-tools```
+
 ### Preparation
 
 Before launching the **simple-reachability** nodes launch the *demo.launch* file from your *moveit* configuration to provide a planning interface and open up **RVIZ**.
