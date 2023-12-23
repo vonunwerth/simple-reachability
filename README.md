@@ -21,7 +21,7 @@ Before launching the **simple-reachability** nodes launch the *demo.launch* file
 
 To run the calculation of the workspace for your robot, run:
 
-```roslaunch simple-reachability calculate_workspace```
+```roslaunch simple-reachability calculate_workspace.launch```
 
 This will calculate the workspace in the way you defined in the *calculation.yaml*. You can provide an end-effector orientation and calculate the **constant orientation workspace** with a given end-effector orientation or you can focus on the simple **reachable workspace** by defining a *Goal Orientation Tolerance*
 
